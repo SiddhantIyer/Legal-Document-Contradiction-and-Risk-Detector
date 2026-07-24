@@ -1,0 +1,114 @@
+/* --- GLOBAL SIDEBAR --- */
+.global-sidebar {
+  width: 100%;
+  background-color: var(--dust-grey);
+  border-bottom: 4px solid var(--carbon-black);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* Pushes footer to bottom */
+}
+
+@media (min-width: 992px) {
+  .global-sidebar {
+    width: 300px;
+    border-bottom: none;
+    border-right: 4px solid var(--carbon-black);
+    flex-shrink: 0;
+  }
+}
+
+.sidebar-footer {
+  padding: 2rem;
+  background-color: var(--charcoal-brown);
+  color: var(--floral-white);
+}
+
+.sidebar-footer .label {
+  color: var(--dust-grey);
+  border-bottom-color: var(--dust-grey);
+}
+
+.sidebar-footer .doc-meta {
+  color: var(--floral-white);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.sidebar-menu {
+  min-width: 0;
+}
+
+.sidebar-btn {
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767px) {
+  .sidebar-menu,
+  .sidebar-footer {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  .sidebar-btn.active {
+    margin-left: -1.25rem;
+    margin-right: -1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  .sidebar-footer {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+}
+
+/* =========================================
+   NESTED SUBMENU STYLES
+   ========================================= */
+
+.sidebar-submenu {
+  display: flex;
+  flex-direction: column;
+  padding-left: 1rem;
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.sidebar-sub-btn {
+  background: transparent;
+  border: none;
+  text-align: left;
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--charcoal-brown);
+  padding: 0.4rem 0;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sidebar-sub-btn:hover {
+  color: var(--spicy-paprika);
+  transform: translateX(4px);
+}
+
+.sidebar-sub-btn.active {
+  color: var(--spicy-paprika);
+}
+
+.tree-branch {
+  color: var(--carbon-black);
+  opacity: 0.5;
+  font-weight: 400;
+}
+
+.sidebar-sub-btn.active .tree-branch,
+.sidebar-sub-btn:hover .tree-branch {
+  color: var(--spicy-paprika);
+  opacity: 1;
+}
