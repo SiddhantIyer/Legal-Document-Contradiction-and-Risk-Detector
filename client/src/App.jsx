@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import './App.css'
+import { getMe, getToken, removeToken } from './services/api'
 import Landing from './pages/LandingPage'
 import HomePage from './pages/Dashboard/Dashboard'
 import LoginPage from './pages/Auth/LoginPage'
@@ -26,24 +27,66 @@ import SettingsPage from './pages/App/SettingsPage'
 import NotificationsPage from './pages/App/NotificationsPage'
 import HelpCenterPage from './pages/App/HelpCenterPage'
 
-const AUTH_KEY = 'machine-counsel-auth'
-
 function AppRoutes() {
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => window.localStorage.getItem(AUTH_KEY) === 'true'
-  )
+  const [user, setUser] = useState(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
 
-  const handleLoginSuccess = () => {
-    window.localStorage.setItem(AUTH_KEY, 'true')
+  // On mount, check if we have a valid token and restore the session
+  useEffect(() => {
+    const restoreSession = async () => {
+      const token = getToken()
+      if (!token) {
+        setIsLoading(false)
+        return
+      }
+
+      try {
+        const data = await getMe()
+        setUser(data.user)
+        setIsAuthenticated(true)
+      } catch (error) {
+        // Token is invalid or expired — clear it
+        removeToken()
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    restoreSession()
+  }, [])
+
+  const handleLoginSuccess = (userData) => {
+    setUser(userData)
     setIsAuthenticated(true)
     navigate('/app')
   }
 
   const handleLogout = () => {
-    window.localStorage.removeItem(AUTH_KEY)
+    removeToken()
+    setUser(null)
     setIsAuthenticated(false)
     navigate('/')
+  }
+
+  // Show nothing while validating the session token on page load
+  if (isLoading) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        background: 'var(--floral-white, #fffcf2)',
+        color: 'var(--carbon-black, #252422)',
+        fontSize: '1.1rem',
+        fontWeight: 600,
+        letterSpacing: '0.05em',
+      }}>
+        Loading...
+      </div>
+    )
   }
 
   return (
