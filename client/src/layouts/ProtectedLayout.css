@@ -2,19 +2,6 @@
   min-height: 100vh;
 }
 
-.protected-layout {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  min-width: 0;
-}
-
-@media (min-width: 992px) {
-  .protected-layout {
-    flex-direction: row;
-  }
-}
-
 .protected-main-content {
   flex-grow: 1;
   min-width: 0;

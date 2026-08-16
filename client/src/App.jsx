@@ -88,6 +88,7 @@ function AppRoutes() {
               isAuthenticated,
               onNavigate: (path) => navigate(path),
               onLogout: handleLogout,
+              user,
             }}
           />
         }
@@ -165,6 +166,7 @@ function AppRoutes() {
             isAuthenticated={isAuthenticated}
             onNavigate={(path) => navigate(path)}
             onLogout={handleLogout}
+            user={user}
           />
         }
       >

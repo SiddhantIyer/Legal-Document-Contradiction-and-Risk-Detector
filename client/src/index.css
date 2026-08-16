@@ -192,6 +192,119 @@ section {
   color: var(--floral-white);
 }
 
+/* --- PROFILE AVATAR DROPDOWN --- */
+.profile-dropdown-wrapper {
+  position: relative;
+}
+
+.profile-avatar-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 3px solid var(--carbon-black);
+  background-color: var(--spicy-paprika);
+  color: var(--floral-white);
+  font-family: 'Inter', sans-serif;
+  font-weight: 900;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 2px 2px 0px var(--carbon-black);
+}
+
+.profile-avatar-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px var(--carbon-black);
+}
+
+.profile-avatar-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px var(--carbon-black);
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  background-color: var(--floral-white);
+  border: 3px solid var(--carbon-black);
+  box-shadow: 6px 6px 0px var(--carbon-black);
+  z-index: 200;
+  animation: dropdownSlideIn 0.15s ease-out;
+}
+
+@keyframes dropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.profile-dropdown-header {
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.profile-dropdown-name {
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--carbon-black);
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+
+.profile-dropdown-email {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--charcoal-brown);
+  opacity: 0.7;
+}
+
+.profile-dropdown-divider {
+  height: 2px;
+  background-color: var(--carbon-black);
+}
+
+.profile-dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+  color: var(--carbon-black);
+  transition: background-color 0.1s, color 0.1s;
+}
+
+.profile-dropdown-item:hover {
+  background-color: var(--dust-grey);
+}
+
+.profile-dropdown-item.logout-item {
+  color: var(--spicy-paprika);
+}
+
+.profile-dropdown-item.logout-item:hover {
+  background-color: var(--spicy-paprika);
+  color: var(--floral-white);
+}
+
 /* =========================================
    AUTHENTICATION PAGES STYLES
    ========================================= */
