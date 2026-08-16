@@ -1,12 +1,21 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { contracts } from '../../data/mockData';
 import './AppPages.css';
 import '../Dashboard/Dashboard.css';
+
+const exportHistory = [
+  { file: 'SaaS_Risk_Report.pdf', date: '2026-07-24', format: 'PDF', size: '2.4 MB' },
+  { file: 'Employment_Analysis.pdf', date: '2026-07-22', format: 'PDF', size: '1.8 MB' },
+  { file: 'NDA_Summary.csv', date: '2026-07-20', format: 'CSV', size: '0.3 MB' },
+  { file: 'Vendor_Clause_Report.pdf', date: '2026-07-18', format: 'PDF', size: '3.1 MB' },
+];
 
 export default function HistoryPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [sortBy, setSortBy] = useState('date');
+  const navigate = useNavigate();
 
   const filtered = contracts
     .filter(c => {
@@ -60,7 +69,7 @@ export default function HistoryPage() {
       </section>
 
       {/* RESULTS */}
-      <section className="dashboard-section" style={{ borderBottom: 'none' }}>
+      <section className="dashboard-section">
         <div style={{ marginBottom: '1rem', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase' }}>
           {filtered.length} {filtered.length === 1 ? 'contract' : 'contracts'} found
         </div>
@@ -116,7 +125,7 @@ export default function HistoryPage() {
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         {c.status === 'Analyzed' && (
                           <>
-                            <button className="btn-small">View</button>
+                            <button className="btn-small" onClick={() => navigate(`/app/workspace/${c.id}`)}>View</button>
                             <button className="btn-small">↓</button>
                           </>
                         )}
@@ -128,6 +137,20 @@ export default function HistoryPage() {
             </table>
           </div>
         )}
+      </section>
+
+      {/* EXPORT HISTORY */}
+      <section className="dashboard-section" style={{ borderBottom: 'none' }}>
+        <h2>Export History</h2>
+        {exportHistory.map((exp, i) => (
+          <div key={i} className="file-card">
+            <div className="file-card-info">
+              <span className="file-card-name">{exp.file}</span>
+              <span className="file-card-meta">{exp.format} • {exp.size} • {exp.date}</span>
+            </div>
+            <button className="btn-small">↓ Download</button>
+          </div>
+        ))}
       </section>
     </section>
   );

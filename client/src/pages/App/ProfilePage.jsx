@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { currentUser, contracts } from '../../data/mockData';
+import { currentUser } from '../../data/mockData';
 import './AppPages.css';
 import '../Dashboard/Dashboard.css';
 
-const TABS = ['Profile', 'Security', 'Notifications', 'Saved Reports', 'Export History', 'Subscription'];
+const TABS = ['Profile', 'Preferences', 'Account Settings'];
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('Profile');
@@ -33,6 +33,11 @@ export default function ProfilePage() {
               <div style={{ marginTop: '1rem' }}>
                 <span className="contract-tag">{profile.role}</span>
               </div>
+              <div style={{ marginTop: '1.5rem', textAlign: 'left' }}>
+                <p className="doc-meta" style={{ color: 'var(--charcoal-brown)' }}>Company: {profile.company}</p>
+                <p className="doc-meta" style={{ color: 'var(--charcoal-brown)' }}>Joined: {profile.joinDate}</p>
+                <p className="doc-meta" style={{ color: 'var(--charcoal-brown)' }}>Documents: {profile.documentsUsed}</p>
+              </div>
             </div>
             <div>
               <div className="settings-form">
@@ -60,53 +65,7 @@ export default function ProfilePage() {
           </div>
         );
 
-      case 'Security':
-        return (
-          <div className="settings-form">
-            <h3>Change Password</h3>
-            <div className="form-group">
-              <label className="form-label">Current Password</label>
-              <input className="form-input" type="password" placeholder="••••••••" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">New Password</label>
-              <input className="form-input" type="password" placeholder="Enter new password" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Confirm Password</label>
-              <input className="form-input" type="password" placeholder="Confirm new password" />
-            </div>
-            <button className="btn-primary" style={{ fontSize: '1rem', padding: '0.75rem 1.5rem', alignSelf: 'flex-start' }}>
-              Update Password
-            </button>
-
-            <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '4px solid var(--carbon-black)' }}>
-              <h3>Two-Factor Authentication</h3>
-              <div className="toggle-row">
-                <div>
-                  <div className="toggle-label">Enable 2FA</div>
-                  <div className="toggle-desc">Add an extra layer of security to your account.</div>
-                </div>
-                <div className="toggle-switch">
-                  <div className="toggle-switch-knob" />
-                </div>
-              </div>
-            </div>
-
-            <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '4px solid var(--carbon-black)' }}>
-              <h3>Active Sessions</h3>
-              <div className="file-card">
-                <div className="file-card-info">
-                  <span className="file-card-name">Current Session</span>
-                  <span className="file-card-meta">Windows • Chrome • Last active: Now</span>
-                </div>
-                <span className="severity-badge low">Active</span>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'Notifications':
+      case 'Preferences':
         return (
           <div style={{ maxWidth: '600px' }}>
             <h3>Notification Preferences</h3>
@@ -126,75 +85,95 @@ export default function ProfilePage() {
                 </div>
               </div>
             ))}
-          </div>
-        );
 
-      case 'Saved Reports':
-        return (
-          <div>
-            <div className="action-table-wrapper">
-              <table className="brutalist-table">
-                <thead>
-                  <tr>
-                    <th>Document</th>
-                    <th>Type</th>
-                    <th>Risk Score</th>
-                    <th>Date</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {contracts.filter(c => c.status === 'Analyzed').map(c => (
-                    <tr key={c.id}>
-                      <td style={{ wordBreak: 'break-all' }}>{c.name}</td>
-                      <td>{c.type}</td>
-                      <td><span className={`severity-badge ${(c.severity || '').toLowerCase()}`}>{c.riskScore}/100</span></td>
-                      <td>{c.uploadDate}</td>
-                      <td><button className="btn-small">Download</button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        );
-
-      case 'Export History':
-        return (
-          <div>
-            {[
-              { file: 'SaaS_Risk_Report.pdf', date: '2026-07-24', format: 'PDF', size: '2.4 MB' },
-              { file: 'Employment_Analysis.pdf', date: '2026-07-22', format: 'PDF', size: '1.8 MB' },
-              { file: 'NDA_Summary.csv', date: '2026-07-20', format: 'CSV', size: '0.3 MB' },
-              { file: 'Vendor_Clause_Report.pdf', date: '2026-07-18', format: 'PDF', size: '3.1 MB' },
-            ].map((exp, i) => (
-              <div key={i} className="file-card">
-                <div className="file-card-info">
-                  <span className="file-card-name">{exp.file}</span>
-                  <span className="file-card-meta">{exp.format} • {exp.size} • {exp.date}</span>
-                </div>
-                <button className="btn-small">↓ Download</button>
+            <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '4px solid var(--carbon-black)' }}>
+              <h3>Display Preferences</h3>
+              <div className="form-group" style={{ marginTop: '1rem' }}>
+                <label className="form-label">Default Risk Threshold</label>
+                <select className="form-select" defaultValue="70">
+                  <option value="50">50 — Conservative</option>
+                  <option value="70">70 — Standard</option>
+                  <option value="85">85 — Relaxed</option>
+                </select>
               </div>
-            ))}
+              <div className="form-group" style={{ marginTop: '1rem' }}>
+                <label className="form-label">Default Analysis Mode</label>
+                <select className="form-select" defaultValue="balanced">
+                  <option value="conservative">Conservative</option>
+                  <option value="balanced">Balanced</option>
+                  <option value="market">Market Standard</option>
+                </select>
+              </div>
+            </div>
           </div>
         );
 
-      case 'Subscription':
+      case 'Account Settings':
         return (
           <div>
-            <div style={{ border: '4px solid var(--carbon-black)', padding: '2rem', marginBottom: '2rem', backgroundColor: 'var(--carbon-black)', color: 'var(--floral-white)' }}>
-              <span className="label" style={{ color: 'var(--spicy-paprika)', borderColor: 'var(--spicy-paprika)' }}>Current Plan</span>
-              <h3 style={{ marginTop: '0.5rem', color: 'var(--floral-white)' }}>Enterprise — ₹999/month</h3>
-              <p style={{ color: 'var(--dust-grey)', marginTop: '0.5rem' }}>
-                Unlimited scans • Clause Rewriter • Version Diffing • AI Chat
-              </p>
-              <p style={{ color: 'var(--dust-grey)', marginTop: '0.5rem', fontSize: '0.85rem' }}>
-                Next billing: August 15, 2026
-              </p>
+            {/* PASSWORD */}
+            <div className="settings-form">
+              <h3>Change Password</h3>
+              <div className="form-group">
+                <label className="form-label">Current Password</label>
+                <input className="form-input" type="password" placeholder="••••••••" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">New Password</label>
+                <input className="form-input" type="password" placeholder="Enter new password" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Confirm Password</label>
+                <input className="form-input" type="password" placeholder="Confirm new password" />
+              </div>
+              <button className="btn-primary" style={{ fontSize: '1rem', padding: '0.75rem 1.5rem', alignSelf: 'flex-start' }}>
+                Update Password
+              </button>
             </div>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <button className="btn-primary" style={{ fontSize: '1rem', padding: '0.75rem 1.5rem' }}>Manage Subscription</button>
-              <button className="btn-primary" style={{ fontSize: '1rem', padding: '0.75rem 1.5rem', backgroundColor: 'var(--charcoal-brown)' }}>Billing History</button>
+
+            {/* 2FA */}
+            <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '4px solid var(--carbon-black)' }}>
+              <h3>Two-Factor Authentication</h3>
+              <div className="toggle-row">
+                <div>
+                  <div className="toggle-label">Enable 2FA</div>
+                  <div className="toggle-desc">Add an extra layer of security to your account.</div>
+                </div>
+                <div className="toggle-switch">
+                  <div className="toggle-switch-knob" />
+                </div>
+              </div>
+            </div>
+
+            {/* SESSIONS */}
+            <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '4px solid var(--carbon-black)' }}>
+              <h3>Active Sessions</h3>
+              <div className="file-card">
+                <div className="file-card-info">
+                  <span className="file-card-name">Current Session</span>
+                  <span className="file-card-meta">Windows • Chrome • Last active: Now</span>
+                </div>
+                <span className="severity-badge low">Active</span>
+              </div>
+            </div>
+
+            {/* SUBSCRIPTION */}
+            <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '4px solid var(--carbon-black)' }}>
+              <h3>Subscription</h3>
+              <div style={{ border: '4px solid var(--carbon-black)', padding: '2rem', marginTop: '1rem', backgroundColor: 'var(--carbon-black)', color: 'var(--floral-white)' }}>
+                <span className="label" style={{ color: 'var(--spicy-paprika)', borderColor: 'var(--spicy-paprika)' }}>Current Plan</span>
+                <h3 style={{ marginTop: '0.5rem', color: 'var(--floral-white)' }}>Enterprise — ₹999/month</h3>
+                <p style={{ color: 'var(--dust-grey)', marginTop: '0.5rem' }}>
+                  Unlimited scans • Clause Rewriter • Version Diffing • AI Chat
+                </p>
+                <p style={{ color: 'var(--dust-grey)', marginTop: '0.5rem', fontSize: '0.85rem' }}>
+                  Next billing: August 15, 2026
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+                <button className="btn-primary" style={{ fontSize: '1rem', padding: '0.75rem 1.5rem' }}>Manage Subscription</button>
+                <button className="btn-primary" style={{ fontSize: '1rem', padding: '0.75rem 1.5rem', backgroundColor: 'var(--charcoal-brown)' }}>Billing History</button>
+              </div>
             </div>
           </div>
         );

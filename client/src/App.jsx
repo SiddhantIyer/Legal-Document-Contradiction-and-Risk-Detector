@@ -12,20 +12,9 @@ import ResetPasswordPage from './pages/Auth/ResetPasswordPage'
 import ProtectedLayout from './layouts/ProtectedLayout'
 import UploadContractPage from './pages/App/UploadContractPage'
 import ContractWorkspacePage from './pages/App/ContractWorkspacePage'
-import CompareContractsPage from './pages/App/CompareContractsPage'
+import KnowledgeBasePage from './pages/App/KnowledgeBasePage'
 import HistoryPage from './pages/App/HistoryPage'
 import ProfilePage from './pages/App/ProfilePage'
-import DocumentProcessingPage from './pages/App/DocumentProcessingPage'
-import AnalysisResultPage from './pages/App/AnalysisResultPage'
-import ClauseViewerPage from './pages/App/ClauseViewerPage'
-import ContradictionDetectionPage from './pages/App/ContradictionDetectionPage'
-import RiskDashboardPage from './pages/App/RiskDashboardPage'
-import ClauseRewritePage from './pages/App/ClauseRewritePage'
-import LegalChatPage from './pages/App/LegalChatPage'
-import KnowledgeBasePage from './pages/App/KnowledgeBasePage'
-import SettingsPage from './pages/App/SettingsPage'
-import NotificationsPage from './pages/App/NotificationsPage'
-import HelpCenterPage from './pages/App/HelpCenterPage'
 
 function AppRoutes() {
   const [user, setUser] = useState(null)
@@ -181,21 +170,10 @@ function AppRoutes() {
       >
         <Route path="/app" element={<HomePage />} />
         <Route path="/app/upload" element={<UploadContractPage />} />
-        <Route path="/app/processing" element={<DocumentProcessingPage />} />
-        <Route path="/app/analysis" element={<AnalysisResultPage />} />
         <Route path="/app/workspace/:contractId" element={<ContractWorkspacePage />} />
-        <Route path="/app/clause-viewer" element={<ClauseViewerPage />} />
-        <Route path="/app/contradictions" element={<ContradictionDetectionPage />} />
-        <Route path="/app/risk-dashboard" element={<RiskDashboardPage />} />
-        <Route path="/app/clause-rewrite" element={<ClauseRewritePage />} />
-        <Route path="/app/chat" element={<LegalChatPage />} />
-        <Route path="/app/compare" element={<CompareContractsPage />} />
         <Route path="/app/knowledge" element={<KnowledgeBasePage />} />
         <Route path="/app/history" element={<HistoryPage />} />
         <Route path="/app/profile" element={<ProfilePage />} />
-        <Route path="/app/settings" element={<SettingsPage />} />
-        <Route path="/app/notifications" element={<NotificationsPage />} />
-        <Route path="/app/help" element={<HelpCenterPage />} />
       </Route>
 
       <Route

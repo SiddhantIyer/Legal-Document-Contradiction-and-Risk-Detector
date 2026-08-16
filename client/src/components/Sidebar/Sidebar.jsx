@@ -3,42 +3,31 @@ import './Sidebar.css';
 
 export default function Sidebar({ currentPath = '/app', onNavigate, onLogout }) {
   const navItems = [
-    { id: 'HOME', label: '[ HOME ]', path: '/app' },
-    { id: 'UPLOAD', label: '[ UPLOAD CONTRACT ]', path: '/app/upload' },
+    { id: 'DASHBOARD', label: '[ DASHBOARD ]', path: '/app' },
+    { id: 'UPLOAD', label: '[ NEW ANALYSIS ]', path: '/app/upload' },
     { 
       id: 'WORKSPACE', 
       label: '[ CONTRACT WORKSPACE ]', 
-      path: '/app/workspace/sample-contract',
-      // Added nested structure for the Contract Workspace
+      path: '/app/workspace',
       subItems: [
-        { id: 'WS_OVERVIEW', label: 'Overview', path: '/app/workspace/sample-contract' },
-        { id: 'WS_CLAUSES', label: 'Clause Viewer', path: '/app/clause-viewer' },
-        { id: 'WS_CONTRA', label: 'Contradictions', path: '/app/contradictions' },
-        { id: 'WS_REWRITE', label: 'Clause Rewrite', path: '/app/clause-rewrite' },
+        { id: 'WS_OVERVIEW', label: 'Overview' },
+        { id: 'WS_DOCUMENT', label: 'Document' },
+        { id: 'WS_FINDINGS', label: 'Findings' },
+        { id: 'WS_CHAT', label: 'AI Chat' },
+        { id: 'WS_SUGGESTIONS', label: 'Clause Suggestions' },
+        { id: 'WS_COMPARE', label: 'Compare Contracts' },
       ]
     },
-    { id: 'PROCESSING', label: '[ PROCESSING ]', path: '/app/processing' },
-    { id: 'ANALYSIS', label: '[ ANALYSIS RESULT ]', path: '/app/analysis' },
-    { id: 'RISK', label: '[ RISK DASHBOARD ]', path: '/app/risk-dashboard' },
-    { id: 'COMPARE', label: '[ COMPARE CONTRACTS ]', path: '/app/compare' },
-    { id: 'CHAT', label: '[ AI LEGAL CHAT ]', path: '/app/chat' },
     { id: 'KNOWLEDGE', label: '[ KNOWLEDGE BASE ]', path: '/app/knowledge' },
     { id: 'HISTORY', label: '[ HISTORY ]', path: '/app/history' },
-    { id: 'NOTIFICATIONS', label: '[ NOTIFICATIONS ]', path: '/app/notifications' },
     { id: 'PROFILE', label: '[ PROFILE ]', path: '/app/profile' },
-    { id: 'SETTINGS', label: '[ SETTINGS ]', path: '/app/settings' },
-    { id: 'HELP', label: '[ HELP CENTER ]', path: '/app/help' },
   ];
 
-  const isActivePath = (itemPath, isExact = false) => {
+  const isActivePath = (itemPath) => {
     if (itemPath === '/app') {
       return currentPath === '/app';
     }
-    // Strict exact match for sub-items to differentiate them
-    if (isExact) {
-      return currentPath === itemPath;
-    }
-    if (itemPath.startsWith('/app/workspace')) {
+    if (itemPath === '/app/workspace') {
       return currentPath.startsWith('/app/workspace');
     }
     return currentPath.startsWith(itemPath);
@@ -54,7 +43,13 @@ export default function Sidebar({ currentPath = '/app', onNavigate, onLogout }) 
             <button 
               className={`sidebar-btn ${isActivePath(item.path) ? 'active' : ''}`}
               type="button"
-              onClick={() => onNavigate?.(item.path)}
+              onClick={() => {
+                if (item.path === '/app/workspace') {
+                  onNavigate?.('/app/workspace/CTR_001');
+                } else {
+                  onNavigate?.(item.path);
+                }
+              }}
             >
               {item.label}
             </button>
@@ -67,9 +62,9 @@ export default function Sidebar({ currentPath = '/app', onNavigate, onLogout }) 
                   return (
                     <button
                       key={sub.id}
-                      className={`sidebar-sub-btn ${isActivePath(sub.path, true) ? 'active' : ''}`}
+                      className="sidebar-sub-btn"
                       type="button"
-                      onClick={() => onNavigate?.(sub.path)}
+                      onClick={() => onNavigate?.(currentPath)}
                     >
                       {/* ASCII tree branches for brutalist layout */}
                       <span className="tree-branch">{isLast ? '└──' : '├──'}</span> {sub.label}
