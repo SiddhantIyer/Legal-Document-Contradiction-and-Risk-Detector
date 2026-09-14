@@ -1,19 +1,30 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
-import { dashboardStats, recentActivity, monthlyUploads, contractTypeDistribution, contracts } from '../../data/mockData';
+import { recentActivity, monthlyUploads, contractTypeDistribution } from '../../data/mockData';
 import './Dashboard.css';
 import '../App/AppPages.css';
 
 const COLORS = ['#eb5e28', '#252422', '#403d39', '#ccc5b9', '#fca311', '#4a7c59'];
 
-export default function HomePage() {
+export default function HomePage({ contracts = [], onRefreshContracts }) {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
 
   const filteredContracts = contracts.filter(c =>
     !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.type.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Compute stats from user's actual contracts
+  const analyzedContracts = contracts.filter(c => c.status === 'Analyzed');
+  const dashboardStats = {
+    documentsUploaded: contracts.length,
+    riskScoreAvg: analyzedContracts.length > 0
+      ? Math.round(analyzedContracts.reduce((sum, c) => sum + (c.riskScore || 0), 0) / analyzedContracts.length)
+      : 0,
+    contractsReviewed: analyzedContracts.length,
+    clausesRewritten: analyzedContracts.reduce((sum, c) => sum + (c.clauses || 0), 0),
+  };
 
   return (
     <section className="dashboard-main">
@@ -44,7 +55,7 @@ export default function HomePage() {
         <div className="metric-card">
           <span className="label">Documents Uploaded</span>
           <div className="metric-value">{dashboardStats.documentsUploaded}</div>
-          <div className="metric-desc">Total contracts in system corpus.</div>
+          <div className="metric-desc">Total contracts in your library.</div>
         </div>
         <div className="metric-card risk-critical">
           <span className="label">Avg Risk Score</span>
@@ -57,9 +68,9 @@ export default function HomePage() {
           <div className="metric-desc">Total completed analyses.</div>
         </div>
         <div className="metric-card">
-          <span className="label">Clauses Rewritten</span>
+          <span className="label">Clauses Parsed</span>
           <div className="metric-value">{dashboardStats.clausesRewritten}</div>
-          <div className="metric-desc">AI-suggested clause improvements.</div>
+          <div className="metric-desc">Total clauses processed by AI.</div>
         </div>
       </section>
 
@@ -71,11 +82,19 @@ export default function HomePage() {
             <span className="quick-action-icon">↑</span>
             Upload Contract
           </button>
-          <button className="quick-action-btn" onClick={() => navigate('/app/workspace/CTR_001')}>
+          <button className="quick-action-btn" onClick={() => {
+            const first = analyzedContracts[0];
+            if (first) navigate(`/app/workspace/${first._id}`);
+            else navigate('/app/upload');
+          }}>
             <span className="quick-action-icon">⇄</span>
             Compare Versions
           </button>
-          <button className="quick-action-btn" onClick={() => navigate('/app/workspace/CTR_001')}>
+          <button className="quick-action-btn" onClick={() => {
+            const first = analyzedContracts[0];
+            if (first) navigate(`/app/workspace/${first._id}`);
+            else navigate('/app/upload');
+          }}>
             <span className="quick-action-icon">◉</span>
             AI Legal Chat
           </button>
@@ -121,10 +140,10 @@ export default function HomePage() {
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
                 <Pie data={[
-                  { name: 'Critical', value: 35 },
-                  { name: 'High', value: 30 },
-                  { name: 'Medium', value: 25 },
-                  { name: 'Low', value: 10 },
+                  { name: 'Critical', value: contracts.filter(c => c.severity === 'CRITICAL').length || 1 },
+                  { name: 'High', value: contracts.filter(c => c.severity === 'HIGH').length || 1 },
+                  { name: 'Medium', value: contracts.filter(c => c.severity === 'MEDIUM').length || 1 },
+                  { name: 'Low', value: contracts.filter(c => c.severity === 'LOW').length || 1 },
                 ]} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
                   <Cell fill="#eb5e28" />
                   <Cell fill="#403d39" />
@@ -160,50 +179,59 @@ export default function HomePage() {
       {/* RECENT CONTRACTS */}
       <section className="dashboard-section">
         <h2>Recent Contracts</h2>
-        <div className="action-table-wrapper">
-          <table className="brutalist-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Document</th>
-                <th>Type</th>
-                <th>Risk</th>
-                <th>Status</th>
-                <th>Date</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredContracts.slice(0, 5).map((c) => (
-                <tr key={c.id} className={c.severity === 'CRITICAL' ? 'row-critical' : ''}>
-                  <td>{c.id}</td>
-                  <td style={{ wordBreak: 'break-all' }}>{c.name}</td>
-                  <td>{c.type}</td>
-                  <td>
-                    {c.riskScore !== null ? (
-                      <span className={`severity-badge ${(c.severity || '').toLowerCase()}`}>
-                        {c.riskScore}/100
-                      </span>
-                    ) : '—'}
-                  </td>
-                  <td>
-                    <span className={`severity-badge ${c.status === 'Analyzed' ? 'low' : 'medium'}`}>
-                      {c.status}
-                    </span>
-                  </td>
-                  <td>{c.uploadDate}</td>
-                  <td>
-                    {c.status === 'Analyzed' && (
-                      <button className="btn-small" onClick={() => navigate(`/app/workspace/${c.id}`)}>
-                        Open →
-                      </button>
-                    )}
-                  </td>
+        {filteredContracts.length === 0 ? (
+          <div className="empty-state">
+            <span className="empty-state-icon">◉</span>
+            <h3>No Contracts Yet</h3>
+            <p>Upload your first contract to get started with AI-powered analysis.</p>
+            <button className="btn-primary" style={{ marginTop: '1rem' }} onClick={() => navigate('/app/upload')}>
+              ↑ Upload Contract
+            </button>
+          </div>
+        ) : (
+          <div className="action-table-wrapper">
+            <table className="brutalist-table">
+              <thead>
+                <tr>
+                  <th>Document</th>
+                  <th>Type</th>
+                  <th>Risk</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filteredContracts.slice(0, 5).map((c) => (
+                  <tr key={c._id} className={c.severity === 'CRITICAL' ? 'row-critical' : ''}>
+                    <td style={{ wordBreak: 'break-all' }}>{c.name}</td>
+                    <td>{c.type}</td>
+                    <td>
+                      {c.riskScore !== null ? (
+                        <span className={`severity-badge ${(c.severity || '').toLowerCase()}`}>
+                          {c.riskScore}/100
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td>
+                      <span className={`severity-badge ${c.status === 'Analyzed' ? 'low' : 'medium'}`}>
+                        {c.status}
+                      </span>
+                    </td>
+                    <td>{c.uploadDate}</td>
+                    <td>
+                      {c.status === 'Analyzed' && (
+                        <button className="btn-small" onClick={() => navigate(`/app/workspace/${c._id}`)}>
+                          Open →
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       {/* RECENT ACTIVITY */}

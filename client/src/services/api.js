@@ -63,3 +63,59 @@ export const getMe = async () => {
   const data = await apiFetch('/auth/me');
   return data;
 };
+
+// ==========================================
+// Contract API calls
+// ==========================================
+
+export const getContracts = async () => {
+  const data = await apiFetch('/contracts');
+  return data;
+};
+
+export const getContractById = async (id) => {
+  const data = await apiFetch(`/contracts/${id}`);
+  return data;
+};
+
+export const createContract = async (contractData) => {
+  const data = await apiFetch('/contracts', {
+    method: 'POST',
+    body: JSON.stringify(contractData),
+  });
+  return data;
+};
+
+export const deleteContract = async (id) => {
+  const data = await apiFetch(`/contracts/${id}`, {
+    method: 'DELETE',
+  });
+  return data;
+};
+
+// ==========================================
+// Contract Upload (real file extraction)
+// ==========================================
+
+export const uploadContract = async (file) => {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_URL}/contracts/upload`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      // Do NOT set Content-Type — browser sets it with boundary for FormData
+    },
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Upload failed');
+  }
+
+  return data;
+};

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import './App.css'
-import { getMe, getToken, removeToken } from './services/api'
+import { getMe, getToken, removeToken, getContracts } from './services/api'
 import Landing from './pages/LandingPage'
 import HomePage from './pages/Dashboard/Dashboard'
 import LoginPage from './pages/Auth/LoginPage'
@@ -20,7 +20,18 @@ function AppRoutes() {
   const [user, setUser] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [contracts, setContracts] = useState([])
   const navigate = useNavigate()
+
+  // Fetch user's contracts from the API
+  const fetchContracts = useCallback(async () => {
+    try {
+      const data = await getContracts()
+      setContracts(data.contracts || [])
+    } catch (error) {
+      console.error('Failed to fetch contracts:', error.message)
+    }
+  }, [])
 
   // On mount, check if we have a valid token and restore the session
   useEffect(() => {
@@ -46,6 +57,13 @@ function AppRoutes() {
     restoreSession()
   }, [])
 
+  // Fetch contracts when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchContracts()
+    }
+  }, [isAuthenticated, fetchContracts])
+
   const handleLoginSuccess = (userData) => {
     setUser(userData)
     setIsAuthenticated(true)
@@ -56,6 +74,7 @@ function AppRoutes() {
     removeToken()
     setUser(null)
     setIsAuthenticated(false)
+    setContracts([])
     navigate('/')
   }
 
@@ -167,14 +186,16 @@ function AppRoutes() {
             onNavigate={(path) => navigate(path)}
             onLogout={handleLogout}
             user={user}
+            contracts={contracts}
+            onRefreshContracts={fetchContracts}
           />
         }
       >
-        <Route path="/app" element={<HomePage />} />
-        <Route path="/app/upload" element={<UploadContractPage />} />
+        <Route path="/app" element={<HomePage contracts={contracts} onRefreshContracts={fetchContracts} />} />
+        <Route path="/app/upload" element={<UploadContractPage onRefreshContracts={fetchContracts} />} />
         <Route path="/app/workspace/:contractId" element={<ContractWorkspacePage />} />
         <Route path="/app/knowledge" element={<KnowledgeBasePage />} />
-        <Route path="/app/history" element={<HistoryPage />} />
+        <Route path="/app/history" element={<HistoryPage contracts={contracts} onRefreshContracts={fetchContracts} />} />
         <Route path="/app/profile" element={<ProfilePage />} />
       </Route>
 

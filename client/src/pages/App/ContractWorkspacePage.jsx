@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { contracts, clauses, contradictions, versionDiffData, chatMessages as initialChatMessages, suggestedQuestions, riskCategories, riskTimeline } from '../../data/mockData';
+import { getContractById } from '../../services/api';
+import { versionDiffData, chatMessages as initialChatMessages, suggestedQuestions, riskTimeline } from '../../data/mockData';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import './AppPages.css';
 import '../Dashboard/Dashboard.css';
@@ -16,19 +17,65 @@ const mockResponses = [
 export default function ContractWorkspacePage() {
   const { contractId } = useParams();
   const [activeTab, setActiveTab] = useState('Overview');
-  const contract = contracts.find(c => c.id === contractId) || contracts[0];
+  const [contract, setContract] = useState(null);
+  const [clauses, setClauses] = useState([]);
+  const [contradictions, setContradictions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // --- OVERVIEW DATA ---
+  // Fetch the contract from API
+  useEffect(() => {
+    const fetchContract = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getContractById(contractId);
+        setContract(data.contract);
+        setClauses(data.contract.clauseData || []);
+        setContradictions(data.contract.contradictionData || []);
+      } catch (err) {
+        console.error('Failed to fetch contract:', err.message);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (contractId) {
+      fetchContract();
+    }
+  }, [contractId]);
+
+  // --- OVERVIEW DATA (computed from real clause data) ---
   const riskData = [
-    { name: 'Critical', value: 3, color: '#eb5e28' },
-    { name: 'High', value: 4, color: '#403d39' },
-    { name: 'Medium', value: 2, color: '#fca311' },
-    { name: 'Low', value: 1, color: '#4a7c59' },
+    { name: 'Critical', value: clauses.filter(c => c.severity === 'CRITICAL').length || 0, color: '#eb5e28' },
+    { name: 'High', value: clauses.filter(c => c.severity === 'HIGH').length || 0, color: '#403d39' },
+    { name: 'Medium', value: clauses.filter(c => c.severity === 'MEDIUM').length || 0, color: '#fca311' },
+    { name: 'Low', value: clauses.filter(c => c.severity === 'LOW').length || 0, color: '#4a7c59' },
   ];
+
+  // Compute risk categories from actual clause types instead of mock data
+  const riskCategoriesComputed = (() => {
+    const typeMap = {};
+    clauses.forEach(c => {
+      if (!typeMap[c.type]) typeMap[c.type] = { scores: [], count: 0 };
+      typeMap[c.type].scores.push(c.riskScore || 0);
+      typeMap[c.type].count += 1;
+    });
+    const colors = ['#eb5e28', '#403d39', '#252422', '#ccc5b9', '#fca311', '#4a7c59'];
+    return Object.entries(typeMap)
+      .map(([name, { scores, count }], i) => ({
+        name,
+        score: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length),
+        count,
+        color: colors[i % colors.length],
+      }))
+      .sort((a, b) => b.score - a.score);
+  })();
 
   // --- DOCUMENT STATE ---
   const [selectedClauseId, setSelectedClauseId] = useState(null);
-  const selectedClause = clauses.find(c => c.id === selectedClauseId);
+  const selectedClause = clauses.find(c => c._id === selectedClauseId);
 
   // --- FINDINGS STATE ---
   const [findingsFilter, setFindingsFilter] = useState('All');
@@ -54,6 +101,40 @@ export default function ContractWorkspacePage() {
     }
   }, [messages, isTyping, activeTab]);
 
+  // Loading state
+  if (loading) {
+    return (
+      <section className="dashboard-main">
+        <header className="dashboard-header">
+          <span className="label">Loading...</span>
+          <h1>Contract<br/>Workspace.</h1>
+        </header>
+        <div className="empty-state">
+          <span className="empty-state-icon" style={{ animation: 'spin 1.5s linear infinite' }}>◉</span>
+          <h3>Loading Contract</h3>
+          <p>Fetching contract data and analysis results...</p>
+        </div>
+      </section>
+    );
+  }
+
+  // Error state
+  if (error || !contract) {
+    return (
+      <section className="dashboard-main">
+        <header className="dashboard-header">
+          <span className="label">Error</span>
+          <h1>Contract<br/>Not Found.</h1>
+        </header>
+        <div className="empty-state">
+          <span className="empty-state-icon">⚠</span>
+          <h3>{error || 'Contract not found'}</h3>
+          <p>The contract you're looking for doesn't exist or you don't have access to it.</p>
+        </div>
+      </section>
+    );
+  }
+
   // ===================== OVERVIEW TAB =====================
   const renderOverview = () => (
     <>
@@ -78,12 +159,12 @@ export default function ContractWorkspacePage() {
         </div>
         <div className="metric-card">
           <span className="label">Clauses Parsed</span>
-          <div className="metric-value">{contract.clauses ?? '—'}</div>
+          <div className="metric-value">{contract.clauses ?? clauses.length}</div>
           <div className="metric-desc">Successfully mapped to taxonomy.</div>
         </div>
         <div className="metric-card">
           <span className="label">Contradictions</span>
-          <div className="metric-value">{contract.contradictions ?? '—'}</div>
+          <div className="metric-value">{contract.contradictions ?? contradictions.length}</div>
           <div className="metric-desc">Logical conflicts in graph.</div>
         </div>
       </section>
@@ -124,14 +205,14 @@ export default function ContractWorkspacePage() {
           <div className="metric-desc">Significant exposure detected.</div>
         </div>
         <div className="metric-card">
-          <span className="label">Missing Clauses</span>
-          <div className="metric-value">2</div>
-          <div className="metric-desc">Force Majeure, Data Breach.</div>
+          <span className="label">Medium Risk</span>
+          <div className="metric-value">{clauses.filter(c => c.severity === 'MEDIUM').length}</div>
+          <div className="metric-desc">Should be reviewed.</div>
         </div>
         <div className="metric-card">
-          <span className="label">Resolved</span>
-          <div className="metric-value">0</div>
-          <div className="metric-desc">Issues addressed via rewrite.</div>
+          <span className="label">Low Risk</span>
+          <div className="metric-value">{clauses.filter(c => c.severity === 'LOW').length}</div>
+          <div className="metric-desc">Generally acceptable.</div>
         </div>
       </section>
 
@@ -139,36 +220,93 @@ export default function ContractWorkspacePage() {
       <section className="dashboard-section">
         <div className="ai-summary-block">
           <span className="label">AI Summary</span>
-          <p style={{ marginTop: '0.75rem' }}>
-            This {contract.type} contains {contract.clauses} clauses with an overall risk score of {contract.riskScore}/100. 
-            The analysis identified {clauses.filter(c => c.severity === 'CRITICAL').length} critical issues primarily related to 
-            limitation of liability, unilateral termination rights, and an unenforceable non-compete clause. 
-            {contract.contradictions} logical contradictions were detected between clause pairs, including an asymmetric 
-            liability/indemnification conflict and a jurisdiction mismatch. Immediate legal review is recommended for clauses 
-            4.1, 6.1, and 11.1 before execution.
-          </p>
+          {contract.summary ? (
+            <p style={{ marginTop: '0.75rem' }}>{contract.summary}</p>
+          ) : (
+            <p style={{ marginTop: '0.75rem' }}>
+              This {contract.type} contains {clauses.length} analyzed clauses with an overall risk score of {contract.riskScore}/100.{' '}
+              The analysis identified {clauses.filter(c => c.severity === 'CRITICAL').length} critical issues
+              {clauses.filter(c => c.severity === 'CRITICAL').length > 0 && ` primarily related to ${clauses.filter(c => c.severity === 'CRITICAL').map(c => c.type.toLowerCase()).join(', ')}`}.{' '}
+              {contradictions.length} logical contradictions were detected between clause pairs.
+              {contract.riskScore >= 70 && ' Immediate legal review is recommended before execution.'}
+              {contract.riskScore >= 50 && contract.riskScore < 70 && ' Review of flagged clauses is recommended.'}
+              {contract.riskScore < 50 && ' The contract is generally well-structured with minor concerns.'}
+            </p>
+          )}
         </div>
       </section>
 
+      {/* DOCUMENT METADATA & EXTRACTED ENTITIES */}
+      {(contract.documentMetadata?.word_count > 0 || (contract.entities && contract.entities.length > 0)) && (
+        <section className="dashboard-section">
+          <h2>Extracted Metadata</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+            {contract.documentMetadata?.page_count > 0 && (
+              <div>
+                <span className="label">Pages</span>
+                <p style={{ fontWeight: 900, fontSize: '1.5rem', fontFamily: 'Inter, sans-serif', marginTop: '0.25rem' }}>{contract.documentMetadata.page_count}</p>
+              </div>
+            )}
+            {contract.documentMetadata?.word_count > 0 && (
+              <div>
+                <span className="label">Words</span>
+                <p style={{ fontWeight: 900, fontSize: '1.5rem', fontFamily: 'Inter, sans-serif', marginTop: '0.25rem' }}>{contract.documentMetadata.word_count.toLocaleString()}</p>
+              </div>
+            )}
+            {contract.documentMetadata?.file_type && (
+              <div>
+                <span className="label">File Type</span>
+                <p style={{ marginTop: '0.25rem' }}><span className="contract-tag">{contract.documentMetadata.file_type.toUpperCase()}</span></p>
+              </div>
+            )}
+            {contract.documentMetadata?.author && (
+              <div>
+                <span className="label">Author</span>
+                <p style={{ marginTop: '0.25rem' }}>{contract.documentMetadata.author}</p>
+              </div>
+            )}
+          </div>
+          {contract.entities && contract.entities.length > 0 && (
+            <>
+              <h4>Key Entities</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '0.75rem', marginTop: '0.75rem' }}>
+                {contract.entities
+                  .filter(e => e.field_name !== 'definition')
+                  .map((entity, i) => (
+                    <div key={i} style={{ padding: '0.75rem', border: '2px solid var(--dust-grey)', backgroundColor: 'var(--floral-white)' }}>
+                      <span className="label" style={{ textTransform: 'capitalize' }}>{entity.field_name.replace(/_/g, ' ')}</span>
+                      <p style={{ fontWeight: 700, marginTop: '0.25rem', wordBreak: 'break-word' }}>{entity.value}</p>
+                      {entity.confidence < 1 && (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--charcoal-brown)' }}>Confidence: {Math.round(entity.confidence * 100)}%</span>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
       {/* RECOMMENDED ACTIONS */}
-      <section className="dashboard-section">
-        <h2>Recommended Actions</h2>
-        <div className="recommended-actions">
-          {[
-            { priority: 'critical', text: 'Review Clause 4.1 (Limitation of Liability) — blanket exclusion of indirect damages is overly broad and potentially unenforceable.' },
-            { priority: 'critical', text: 'Remove or renegotiate Clause 11.1 (Non-Compete) — void under Section 27, Indian Contract Act 1872.' },
-            { priority: 'critical', text: 'Add cure period and refund provisions to Clause 6.1 (Termination) — unilateral immediate termination is unconscionable.' },
-            { priority: 'high', text: 'Make indemnification mutual in Clause 4.2 — current one-sided structure creates asymmetric risk.' },
-            { priority: 'high', text: 'Add data breach notification clause — missing entirely, required under DPDP Act 2023.' },
-            { priority: 'medium', text: 'Unify governing law (Clause 9.1) and jurisdiction (Clause 12.4) — currently Delaware law with California courts.' },
-          ].map((action, i) => (
-            <div key={i} className="recommended-action-item">
-              <div className={`action-priority ${action.priority}`}>{i + 1}</div>
-              <p style={{ margin: 0, fontSize: '0.9rem' }}>{action.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      {clauses.filter(c => c.severity === 'CRITICAL' || c.severity === 'HIGH').length > 0 && (
+        <section className="dashboard-section">
+          <h2>Recommended Actions</h2>
+          <div className="recommended-actions">
+            {clauses
+              .filter(c => c.severity === 'CRITICAL' || c.severity === 'HIGH')
+              .sort((a, b) => b.riskScore - a.riskScore)
+              .slice(0, 6)
+              .map((clause, i) => (
+                <div key={clause._id || i} className="recommended-action-item">
+                  <div className={`action-priority ${clause.severity.toLowerCase()}`}>{i + 1}</div>
+                  <p style={{ margin: 0, fontSize: '0.9rem' }}>
+                    Review Clause {clause.number} ({clause.type}) — {clause.explanation.substring(0, 120)}...
+                  </p>
+                </div>
+              ))}
+          </div>
+        </section>
+      )}
 
       {/* RISK BREAKDOWN CHARTS */}
       <section className="dashboard-section">
@@ -178,9 +316,9 @@ export default function ContractWorkspacePage() {
             <h4>Severity Distribution</h4>
             <ResponsiveContainer width="100%" height={240}>
               <PieChart>
-                <Pie data={riskData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} dataKey="value"
+                <Pie data={riskData.filter(d => d.value > 0)} cx="50%" cy="50%" innerRadius={55} outerRadius={90} dataKey="value"
                   label={({ name, value }) => `${name}: ${value}`}>
-                  {riskData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                  {riskData.filter(d => d.value > 0).map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
                 <Tooltip contentStyle={{ fontFamily: 'Space Mono', border: '2px solid #252422' }} />
               </PieChart>
@@ -189,12 +327,12 @@ export default function ContractWorkspacePage() {
           <div className="chart-wrapper">
             <h4>Risk by Category</h4>
             <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={riskCategories} layout="vertical">
+              <BarChart data={riskCategoriesComputed} layout="vertical">
                 <XAxis type="number" domain={[0, 100]} tick={{ fontFamily: 'Space Mono', fontSize: 11, fontWeight: 700 }} />
                 <YAxis dataKey="name" type="category" width={90} tick={{ fontFamily: 'Space Mono', fontSize: 11, fontWeight: 700 }} />
                 <Tooltip contentStyle={{ fontFamily: 'Space Mono', border: '2px solid #252422' }} />
                 <Bar dataKey="score" fill="#252422">
-                  {riskCategories.map((entry, i) => (
+                  {riskCategoriesComputed.map((entry, i) => (
                     <Cell key={i} fill={entry.score >= 80 ? '#eb5e28' : entry.score >= 60 ? '#403d39' : entry.score >= 40 ? '#fca311' : '#4a7c59'} />
                   ))}
                 </Bar>
@@ -215,7 +353,7 @@ export default function ContractWorkspacePage() {
           <div className="chart-wrapper">
             <h4>Risk Radar</h4>
             <ResponsiveContainer width="100%" height={240}>
-              <RadarChart data={riskCategories.map(c => ({ subject: c.name, score: c.score, fullMark: 100 }))}>
+              <RadarChart data={riskCategoriesComputed.map(c => ({ subject: c.name, score: c.score, fullMark: 100 }))}>
                 <PolarGrid stroke="#ccc5b9" />
                 <PolarAngleAxis dataKey="subject" tick={{ fontFamily: 'Space Mono', fontSize: 10, fontWeight: 700 }} />
                 <PolarRadiusAxis domain={[0, 100]} tick={false} />
@@ -227,28 +365,35 @@ export default function ContractWorkspacePage() {
       </section>
 
       {/* CRITICAL FINDINGS */}
-      <section className="dashboard-section">
-        <h2>Critical Findings</h2>
-        {clauses.filter(c => c.severity === 'CRITICAL').map((clause) => (
-          <div key={clause.id} className={`clause-card risk-indicator-${clause.severity.toLowerCase()}`}>
-            <div className="clause-card-header">
-              <div>
-                <strong>Clause {clause.number}</strong> — {clause.type}
+      {clauses.filter(c => c.severity === 'CRITICAL').length > 0 && (
+        <section className="dashboard-section">
+          <h2>Critical Findings</h2>
+          {clauses.filter(c => c.severity === 'CRITICAL').map((clause) => (
+            <div key={clause._id} className={`clause-card risk-indicator-${clause.severity.toLowerCase()}`}>
+              <div className="clause-card-header">
+                <div>
+                  <strong>Clause {clause.number}</strong> — {clause.type}
+                  {clause.issueType && <span className="contract-tag" style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}>{clause.issueType.replace(/_/g, ' ')}</span>}
+                </div>
+                <span className={`severity-badge ${clause.severity.toLowerCase()}`}>
+                  {clause.severity} • {clause.riskScore}/100
+                </span>
               </div>
-              <span className={`severity-badge ${clause.severity.toLowerCase()}`}>
-                {clause.severity} • {clause.riskScore}/100
-              </span>
+              <div className="clause-card-body">
+                <p><strong>Finding:</strong> {clause.explanation}</p>
+                {clause.practicalImpact && <p><strong>Practical Impact:</strong> {clause.practicalImpact}</p>}
+                <p><strong>Recommendation:</strong> {clause.recommendation}</p>
+              </div>
+              {(clause.relevantLaw && clause.legalCitationConfidence > 0) && (
+                <div className="clause-card-footer">
+                  <strong>Relevant Law:</strong> {clause.relevantLaw}
+                  <span className="stat-pill" style={{ marginLeft: '0.5rem' }}>Confidence: {clause.legalCitationConfidence}%</span>
+                </div>
+              )}
             </div>
-            <div className="clause-card-body">
-              <p><strong>Finding:</strong> {clause.explanation}</p>
-              <p><strong>Recommendation:</strong> {clause.recommendation}</p>
-            </div>
-            <div className="clause-card-footer">
-              <strong>Relevant Law:</strong> {clause.relevantLaw}
-            </div>
-          </div>
-        ))}
-      </section>
+          ))}
+        </section>
+      )}
 
       {/* EXPORT & SHARE */}
       <section className="dashboard-section" style={{ borderBottom: 'none' }}>
@@ -280,12 +425,12 @@ export default function ContractWorkspacePage() {
           </div>
           {clauses.map(clause => (
             <div
-              key={clause.id}
-              className={`clause-highlight risk-${clause.severity.toLowerCase()} ${selectedClauseId === clause.id ? 'selected' : ''}`}
-              onClick={() => setSelectedClauseId(clause.id)}
+              key={clause._id}
+              className={`clause-highlight risk-${clause.severity.toLowerCase()} ${selectedClauseId === clause._id ? 'selected' : ''}`}
+              onClick={() => setSelectedClauseId(clause._id)}
               style={{
                 cursor: 'pointer',
-                backgroundColor: selectedClauseId === clause.id ? 'var(--dust-grey)' : undefined,
+                backgroundColor: selectedClauseId === clause._id ? 'var(--dust-grey)' : undefined,
                 padding: '0.75rem 1rem',
                 marginBottom: '0.5rem',
               }}
@@ -303,13 +448,22 @@ export default function ContractWorkspacePage() {
             <div className="detail-section">
               <span className="detail-label">Selected Clause</span>
               <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>§ {selectedClause.number} — {selectedClause.type}</h3>
+              {selectedClause.issueType && <span className="contract-tag" style={{ marginBottom: '0.5rem', display: 'inline-block', fontSize: '0.75rem' }}>{selectedClause.issueType.replace(/_/g, ' ')}</span>}
+              {selectedClause.clauseSummary && <p style={{ color: 'var(--charcoal-brown)', fontStyle: 'italic', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{selectedClause.clauseSummary}</p>}
               <p className="detail-value" style={{ color: 'var(--charcoal-brown)' }}>{selectedClause.text}</p>
             </div>
 
             <div className="detail-section">
-              <span className="detail-label">Explanation</span>
+              <span className="detail-label">Analysis</span>
               <p className="detail-value">{selectedClause.explanation}</p>
             </div>
+
+            {selectedClause.practicalImpact && (
+              <div className="detail-section">
+                <span className="detail-label">Practical Impact</span>
+                <p className="detail-value">{selectedClause.practicalImpact}</p>
+              </div>
+            )}
 
             <div className="detail-section">
               <span className="detail-label">Severity</span>
@@ -317,22 +471,27 @@ export default function ContractWorkspacePage() {
               <span className="stat-pill" style={{ marginLeft: '0.5rem' }}>Risk: {selectedClause.riskScore}/100</span>
             </div>
 
-            <div className="detail-section">
-              <span className="detail-label">Legal Reference</span>
-              <p className="detail-value" style={{ fontSize: '0.9rem' }}>{selectedClause.relevantLaw}</p>
-            </div>
+            {selectedClause.relevantLaw && selectedClause.legalCitationConfidence > 0 && (
+              <div className="detail-section">
+                <span className="detail-label">Legal Reference</span>
+                <p className="detail-value" style={{ fontSize: '0.9rem' }}>{selectedClause.relevantLaw}</p>
+                <span className="stat-pill">Citation Confidence: {selectedClause.legalCitationConfidence}%</span>
+              </div>
+            )}
 
             <div className="detail-section">
               <span className="detail-label">Confidence Score</span>
               <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontSize: '1.5rem' }}>{selectedClause.confidence}%</p>
             </div>
 
-            <div className="detail-section">
-              <span className="detail-label">AI Suggested Rewrite</span>
-              <div style={{ padding: '1rem', border: '2px solid var(--carbon-black)', backgroundColor: 'rgba(74,124,89,0.05)', borderLeft: '4px solid #4a7c59', marginTop: '0.5rem' }}>
-                <p style={{ fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>{selectedClause.rewrite}</p>
+            {selectedClause.rewrite && (
+              <div className="detail-section">
+                <span className="detail-label">AI Suggested Rewrite</span>
+                <div style={{ padding: '1rem', border: '2px solid var(--carbon-black)', backgroundColor: 'rgba(74,124,89,0.05)', borderLeft: '4px solid #4a7c59', marginTop: '0.5rem' }}>
+                  <p style={{ fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>{selectedClause.rewrite}</p>
+                </div>
               </div>
-            </div>
+            )}
           </>
         ) : (
           <div className="document-empty-detail">
@@ -362,7 +521,7 @@ export default function ContractWorkspacePage() {
     clauses.forEach(clause => {
       const { category, cssClass } = categorizeClause(clause);
       items.push({
-        id: `clause-${clause.id}`,
+        id: `clause-${clause._id}`,
         type: 'clause',
         title: `§ ${clause.number} — ${clause.type}`,
         severity: clause.severity,
@@ -370,52 +529,34 @@ export default function ContractWorkspacePage() {
         category,
         cssClass,
         text: clause.text,
+        clauseSummary: clause.clauseSummary,
+        issueType: clause.issueType,
         explanation: clause.explanation,
+        practicalImpact: clause.practicalImpact,
         recommendation: clause.recommendation,
         relevantLaw: clause.relevantLaw,
+        legalCitationConfidence: clause.legalCitationConfidence,
         clauseType: clause.type,
       });
     });
 
     // Add contradictions
-    contradictions.forEach(contra => {
+    contradictions.forEach((contra, idx) => {
+      const classLabel = contra.classification || contra.conflictType || 'CONFLICT';
       items.push({
-        id: `contra-${contra.id}`,
+        id: `contra-${contra._id || idx}`,
         type: 'contradiction',
-        title: `${contra.conflictType}: § ${contra.clauseA.number} vs § ${contra.clauseB.number}`,
+        title: `${classLabel.replace(/_/g, ' ')}: § ${contra.clauseA.number} vs § ${contra.clauseB.number}`,
         severity: contra.severity,
         riskScore: null,
         category: 'Contradictions',
         cssClass: 'contradictions',
+        classification: classLabel,
         explanation: contra.explanation,
         resolution: contra.suggestedResolution,
         clauseA: contra.clauseA,
         clauseB: contra.clauseB,
       });
-    });
-
-    // Add mock missing clauses
-    items.push({
-      id: 'missing-1',
-      type: 'missing',
-      title: 'Missing: Force Majeure Clause',
-      severity: 'HIGH',
-      riskScore: null,
-      category: 'Missing Clauses',
-      cssClass: 'missing-clauses',
-      explanation: 'No force majeure clause found. This leaves both parties exposed in case of unforeseeable events (pandemic, natural disaster, government action).',
-      recommendation: 'Add a standard force majeure clause covering natural disasters, pandemics, government actions, and other events beyond reasonable control.',
-    });
-    items.push({
-      id: 'missing-2',
-      type: 'missing',
-      title: 'Missing: Data Breach Notification',
-      severity: 'HIGH',
-      riskScore: null,
-      category: 'Missing Clauses',
-      cssClass: 'missing-clauses',
-      explanation: 'No data breach notification procedure found. Required under the Digital Personal Data Protection Act 2023.',
-      recommendation: 'Add clause requiring notification within 72 hours of any data breach, including scope, affected data categories, and remediation steps.',
     });
 
     // Apply filter
@@ -497,13 +638,17 @@ export default function ContractWorkspacePage() {
                 <div className="finding-card-body">
                   {item.type === 'clause' && (
                     <>
+                      {item.issueType && <span className="contract-tag" style={{ fontSize: '0.7rem', marginBottom: '0.5rem', display: 'inline-block' }}>{item.issueType.replace(/_/g, ' ')}</span>}
+                      {item.clauseSummary && <p style={{ color: 'var(--charcoal-brown)', fontSize: '0.85rem', fontStyle: 'italic', marginBottom: '0.5rem' }}>{item.clauseSummary}</p>}
                       <p style={{ color: 'var(--charcoal-brown)', fontSize: '0.9rem' }}>{item.text}</p>
                       <p><strong>Analysis:</strong> {item.explanation}</p>
+                      {item.practicalImpact && <p><strong>Practical Impact:</strong> {item.practicalImpact}</p>}
                       <p><strong>Recommendation:</strong> {item.recommendation}</p>
                     </>
                   )}
                   {item.type === 'contradiction' && (
                     <>
+                      {item.classification && <span className="contract-tag" style={{ fontSize: '0.7rem', marginBottom: '0.75rem', display: 'inline-block' }}>{item.classification.replace(/_/g, ' ')}</span>}
                       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
                         <div style={{ flex: 1, minWidth: '200px', padding: '1rem', border: '2px solid var(--carbon-black)', borderLeft: '4px solid var(--spicy-paprika)' }}>
                           <span className="label" style={{ color: 'var(--spicy-paprika)', borderColor: 'var(--spicy-paprika)', fontSize: '0.75rem' }}>§ {item.clauseA.number}</span>
@@ -520,16 +665,11 @@ export default function ContractWorkspacePage() {
                       </div>
                     </>
                   )}
-                  {item.type === 'missing' && (
-                    <>
-                      <p>{item.explanation}</p>
-                      <p><strong>Recommendation:</strong> {item.recommendation}</p>
-                    </>
-                  )}
                 </div>
-                {item.relevantLaw && (
+                {item.relevantLaw && item.legalCitationConfidence > 0 && (
                   <div className="finding-card-footer">
                     <span><strong>Law:</strong> {item.relevantLaw}</span>
+                    <span className="stat-pill" style={{ marginLeft: '0.5rem' }}>Confidence: {item.legalCitationConfidence}%</span>
                   </div>
                 )}
               </div>
@@ -693,7 +833,7 @@ export default function ContractWorkspacePage() {
       {riskyClauses.map(clause => {
         const riskReduction = Math.round(clause.riskScore * 0.4);
         return (
-          <div key={clause.id} className="clause-suggestion-card">
+          <div key={clause._id} className="clause-suggestion-card">
             <div className="clause-suggestion-header">
               <div>
                 <strong>§ {clause.number} — {clause.type}</strong>
@@ -701,7 +841,7 @@ export default function ContractWorkspacePage() {
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 <span className={`severity-badge ${clause.severity.toLowerCase()}`}>{clause.severity}</span>
                 <span className="stat-pill negative">Risk: {clause.riskScore}/100</span>
-                {accepted[clause.id] && <span className="stat-pill positive">✓ Accepted</span>}
+                {accepted[clause._id] && <span className="stat-pill positive">✓ Accepted</span>}
               </div>
             </div>
 
@@ -736,15 +876,15 @@ export default function ContractWorkspacePage() {
               <button
                 className="btn-small"
                 style={{
-                  backgroundColor: accepted[clause.id] ? '#4a7c59' : 'var(--carbon-black)',
+                  backgroundColor: accepted[clause._id] ? '#4a7c59' : 'var(--carbon-black)',
                   color: 'var(--floral-white)',
                 }}
-                onClick={() => handleAccept(clause.id)}
+                onClick={() => handleAccept(clause._id)}
               >
-                {accepted[clause.id] ? '✓ Accepted' : '✓ Accept'}
+                {accepted[clause._id] ? '✓ Accepted' : '✓ Accept'}
               </button>
-              <button className="btn-small" onClick={() => handleCopy(clause.id, clause.rewrite)}>
-                {copiedId === clause.id ? '✓ Copied' : '⎘ Copy'}
+              <button className="btn-small" onClick={() => handleCopy(clause._id, clause.rewrite)}>
+                {copiedId === clause._id ? '✓ Copied' : '⎘ Copy'}
               </button>
             </div>
           </div>
@@ -832,7 +972,7 @@ export default function ContractWorkspacePage() {
         <div className="ai-summary-block">
           <span className="label">AI Summary of Differences</span>
           <p style={{ marginTop: '0.75rem' }}>
-            Version 2 introduces significant risk increases across 6 clause changes. The most concerning additions include
+            Version 2 introduces significant risk increases across {changes.length} clause changes. The most concerning additions include
             a blanket liability exclusion (Clause 4.1, +20 risk), a one-sided indemnification clause (Clause 4.2, +78 risk),
             and an unenforceable non-compete (Clause 11.1, +90 risk). The removal of the mutual NDA (Clause 8.2)
             eliminates important confidentiality protections. Overall risk score increased from {version1.riskScore} to {version2.riskScore},
@@ -910,7 +1050,7 @@ export default function ContractWorkspacePage() {
   return (
     <section className="dashboard-main">
       <header className="dashboard-header">
-        <span className="label">Active Contract — {contract.id}</span>
+        <span className="label">Active Contract — {contract.type}</span>
         <h1>Contract<br/>Workspace.</h1>
       </header>
 

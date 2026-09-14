@@ -1,44 +1,43 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { uploadContract } from '../../services/api';
 import '../App/AppPages.css';
 import '../Dashboard/Dashboard.css';
 
 const ANALYSIS_STEPS = [
-  { id: 1, label: 'Extracting text...' },
-  { id: 2, label: 'Detecting clauses...' },
-  { id: 3, label: 'Checking contradictions...' },
-  { id: 4, label: 'Running legal AI...' },
+  { id: 1, label: 'Uploading document...' },
+  { id: 2, label: 'Extracting text...' },
+  { id: 3, label: 'Detecting clauses & entities...' },
+  { id: 4, label: 'Running legal AI analysis...' },
   { id: 5, label: 'Generating report...' },
 ];
 
-export default function UploadContractPage() {
+export default function UploadContractPage({ onRefreshContracts }) {
   const [dragOver, setDragOver] = useState(false);
-  const [files, setFiles] = useState([]);
+  const [files, setFiles] = useState([]);       // { id, name, size, type, status, uploadedAt }
+  const [rawFiles, setRawFiles] = useState({});  // id -> actual File object
   const [uploading, setUploading] = useState(null);
   const [progress, setProgress] = useState(0);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisStep, setAnalysisStep] = useState(0);
   const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [analysisError, setAnalysisError] = useState(null);
+  const [apiDone, setApiDone] = useState(false);
+  const [apiResult, setApiResult] = useState(null);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
-  const validTypes = [
-    'application/pdf',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'image/jpeg',
-    'image/png',
-  ];
+  const validExtensions = /\.(pdf|docx)$/i;
 
-  const getFileTypeLabel = (type) => {
-    if (type.includes('pdf')) return 'PDF';
-    if (type.includes('word') || type.includes('document')) return 'DOCX';
-    if (type.includes('image')) return 'IMAGE';
+  const getFileTypeLabel = (name) => {
+    if (name.match(/\.pdf$/i)) return 'PDF';
+    if (name.match(/\.docx$/i)) return 'DOCX';
     return 'FILE';
   };
 
   const handleFiles = useCallback((fileList) => {
     const newFiles = Array.from(fileList)
-      .filter(f => validTypes.includes(f.type) || f.name.match(/\.(pdf|docx|jpg|jpeg|png)$/i))
+      .filter(f => validExtensions.test(f.name))
       .map(f => ({
         id: `FILE_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         name: f.name,
@@ -46,13 +45,20 @@ export default function UploadContractPage() {
         type: f.type || 'application/octet-stream',
         status: 'ready',
         uploadedAt: new Date().toISOString(),
+        _rawFile: f, // Keep reference to the actual File object
       }));
 
     if (newFiles.length === 0) return;
 
-    setFiles(prev => [...newFiles, ...prev]);
+    // Store raw File objects by ID
+    const newRawMap = {};
+    newFiles.forEach(f => { newRawMap[f.id] = f._rawFile; });
+    setRawFiles(prev => ({ ...prev, ...newRawMap }));
 
-    // Mock upload for first file
+    // Store file metadata (without the raw File)
+    setFiles(prev => [...newFiles.map(({ _rawFile, ...meta }) => meta), ...prev]);
+
+    // Simulate upload progress for the first file
     const file = newFiles[0];
     setUploading(file.id);
     setProgress(0);
@@ -89,6 +95,11 @@ export default function UploadContractPage() {
 
   const removeFile = (id) => {
     setFiles(prev => prev.filter(f => f.id !== id));
+    setRawFiles(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
   };
 
   const formatSize = (bytes) => {
@@ -101,29 +112,71 @@ export default function UploadContractPage() {
     setAnalyzing(true);
     setAnalysisStep(0);
     setAnalysisProgress(0);
+    setAnalysisError(null);
+    setApiDone(false);
+    setApiResult(null);
+
+    // Find the uploaded file and send it to the real API
+    const uploadedFileMeta = files.find(f => f.status === 'uploaded');
+    if (!uploadedFileMeta) return;
+
+    const rawFile = rawFiles[uploadedFileMeta.id];
+    if (!rawFile) return;
+
+    // Fire the real API call in the background
+    uploadContract(rawFile)
+      .then((result) => {
+        setApiResult(result);
+        setApiDone(true);
+      })
+      .catch((err) => {
+        console.error('Upload/analysis failed:', err.message);
+        setAnalysisError(err.message);
+        setAnalyzing(false);
+      });
   };
 
-  // Analysis step progression
+  // Analysis step progression (visual animation)
   useEffect(() => {
     if (!analyzing) return;
 
+    // If all steps are done AND the API is done, navigate
     if (analysisStep >= ANALYSIS_STEPS.length) {
       setAnalysisProgress(100);
-      // Navigate to workspace after short delay
-      const timer = setTimeout(() => {
-        navigate('/app/workspace/CTR_001');
-      }, 800);
-      return () => clearTimeout(timer);
+
+      if (apiDone && apiResult) {
+        const timer = setTimeout(() => {
+          onRefreshContracts?.();
+          navigate(`/app/workspace/${apiResult.contract._id}`);
+        }, 600);
+        return () => clearTimeout(timer);
+      }
+
+      // If steps are done but API isn't, wait for API
+      return;
     }
 
     setAnalysisProgress(Math.round((analysisStep / ANALYSIS_STEPS.length) * 100));
 
+    // Pace the animation steps — slow enough for real API to finish
     const timer = setTimeout(() => {
       setAnalysisStep(prev => prev + 1);
-    }, 1400 + Math.random() * 600);
+    }, 2500 + Math.random() * 1500);
 
     return () => clearTimeout(timer);
-  }, [analyzing, analysisStep, navigate]);
+  }, [analyzing, analysisStep, apiDone, apiResult, navigate, onRefreshContracts]);
+
+  // If API finishes while steps are still going, that's fine — let steps catch up.
+  // If API finishes AFTER steps, navigate immediately.
+  useEffect(() => {
+    if (apiDone && apiResult && analysisStep >= ANALYSIS_STEPS.length && analyzing) {
+      const timer = setTimeout(() => {
+        onRefreshContracts?.();
+        navigate(`/app/workspace/${apiResult.contract._id}`);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [apiDone, apiResult, analysisStep, analyzing, navigate, onRefreshContracts]);
 
   const getStepStatus = (index) => {
     if (index < analysisStep) return 'complete';
@@ -145,7 +198,9 @@ export default function UploadContractPage() {
             <div className="analysis-overlay-progress">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                 <span style={{ fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase' }}>
-                  {analysisStep >= ANALYSIS_STEPS.length ? 'Analysis Complete' : `Step ${analysisStep + 1} of ${ANALYSIS_STEPS.length}`}
+                  {analysisStep >= ANALYSIS_STEPS.length
+                    ? (apiDone ? 'Analysis Complete' : 'Finalizing...')
+                    : `Step ${analysisStep + 1} of ${ANALYSIS_STEPS.length}`}
                 </span>
                 <span style={{ fontWeight: 900, fontFamily: 'Inter, sans-serif', fontSize: '1.25rem' }}>
                   {analysisProgress}%
@@ -182,6 +237,15 @@ export default function UploadContractPage() {
           <h1>New<br/>Analysis.</h1>
         </header>
 
+        {/* ERROR MESSAGE */}
+        {analysisError && (
+          <section className="dashboard-section">
+            <div style={{ padding: '1rem', border: '2px solid var(--spicy-paprika)', backgroundColor: 'rgba(235,94,40,0.05)' }}>
+              <strong>Error:</strong> {analysisError}
+            </div>
+          </section>
+        )}
+
         {/* UPLOAD ZONE */}
         <section className="dashboard-section">
           <div
@@ -197,14 +261,14 @@ export default function UploadContractPage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.docx,.jpg,.jpeg,.png"
+              accept=".pdf,.docx"
               multiple
               onChange={(e) => handleFiles(e.target.files)}
               style={{ display: 'none' }}
             />
             <span className="upload-zone-icon">↑</span>
             <h3>Drop Contract Here</h3>
-            <p>Drag & drop your PDF, DOCX, or scanned image — or click to browse.</p>
+            <p>Drag & drop your PDF or DOCX — or click to browse.</p>
             <button className="upload-btn-inline" type="button" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>
               Select File
             </button>
@@ -214,8 +278,6 @@ export default function UploadContractPage() {
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
             <span className="contract-tag">PDF</span>
             <span className="contract-tag">DOCX</span>
-            <span className="contract-tag">JPG</span>
-            <span className="contract-tag">PNG</span>
           </div>
         </section>
 
@@ -240,7 +302,7 @@ export default function UploadContractPage() {
                 <div className="file-card-info">
                   <span className="file-card-name">{file.name}</span>
                   <span className="file-card-meta">
-                    {getFileTypeLabel(file.type)} • {formatSize(file.size)} • {file.status === 'uploaded' ? 'Uploaded ✓' : 'Ready'}
+                    {getFileTypeLabel(file.name)} • {formatSize(file.size)} • {file.status === 'uploaded' ? 'Uploaded ✓' : 'Ready'}
                   </span>
                 </div>
                 <div className="file-card-actions">
@@ -267,3 +329,4 @@ export default function UploadContractPage() {
     </>
   );
 }
+

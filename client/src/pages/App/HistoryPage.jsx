@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { contracts } from '../../data/mockData';
+import { deleteContract as deleteContractApi } from '../../services/api';
 import './AppPages.css';
 import '../Dashboard/Dashboard.css';
 
@@ -11,10 +11,11 @@ const exportHistory = [
   { file: 'Vendor_Clause_Report.pdf', date: '2026-07-18', format: 'PDF', size: '3.1 MB' },
 ];
 
-export default function HistoryPage() {
+export default function HistoryPage({ contracts = [], onRefreshContracts }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [sortBy, setSortBy] = useState('date');
+  const [deleting, setDeleting] = useState(null);
   const navigate = useNavigate();
 
   const filtered = contracts
@@ -29,6 +30,19 @@ export default function HistoryPage() {
       if (sortBy === 'name') return a.name.localeCompare(b.name);
       return 0;
     });
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this contract?')) return;
+    setDeleting(id);
+    try {
+      await deleteContractApi(id);
+      onRefreshContracts?.();
+    } catch (err) {
+      console.error('Failed to delete contract:', err.message);
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   return (
     <section className="dashboard-main">
@@ -85,7 +99,6 @@ export default function HistoryPage() {
             <table className="brutalist-table">
               <thead>
                 <tr>
-                  <th>ID</th>
                   <th>Document</th>
                   <th>Type</th>
                   <th>Upload Date</th>
@@ -99,8 +112,7 @@ export default function HistoryPage() {
               </thead>
               <tbody>
                 {filtered.map(c => (
-                  <tr key={c.id} className={c.severity === 'CRITICAL' ? 'row-critical' : ''}>
-                    <td>{c.id}</td>
+                  <tr key={c._id} className={c.severity === 'CRITICAL' ? 'row-critical' : ''}>
                     <td style={{ wordBreak: 'break-all', maxWidth: '200px' }}>{c.name}</td>
                     <td>{c.type}</td>
                     <td>{c.uploadDate}</td>
@@ -125,8 +137,10 @@ export default function HistoryPage() {
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         {c.status === 'Analyzed' && (
                           <>
-                            <button className="btn-small" onClick={() => navigate(`/app/workspace/${c.id}`)}>View</button>
-                            <button className="btn-small">↓</button>
+                            <button className="btn-small" onClick={() => navigate(`/app/workspace/${c._id}`)}>View</button>
+                            <button className="btn-small" onClick={() => handleDelete(c._id)} disabled={deleting === c._id}>
+                              {deleting === c._id ? '...' : '✕'}
+                            </button>
                           </>
                         )}
                       </div>
