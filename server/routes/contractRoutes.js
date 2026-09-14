@@ -6,6 +6,7 @@ const {
   createContract,
   uploadAndAnalyze,
   deleteContract,
+  chatWithContract,
 } = require('../controllers/contractController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -32,6 +33,7 @@ router.get('/', protect, getContracts);
 router.get('/:id', protect, getContract);
 router.post('/', protect, createContract);
 router.post('/upload', protect, upload.single('file'), uploadAndAnalyze);
+router.post('/:id/chat', protect, chatWithContract);
 router.delete('/:id', protect, deleteContract);
 
 module.exports = router;

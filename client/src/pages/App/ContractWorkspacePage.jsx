@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { getContractById } from '../../services/api';
+import { getContractById, chatWithContract } from '../../services/api';
 import { versionDiffData, chatMessages as initialChatMessages, suggestedQuestions, riskTimeline } from '../../data/mockData';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import './AppPages.css';
@@ -82,7 +82,7 @@ export default function ContractWorkspacePage() {
   const [findingsSearch, setFindingsSearch] = useState('');
 
   // --- CHAT STATE ---
-  const [messages, setMessages] = useState(initialChatMessages);
+  const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
@@ -681,7 +681,7 @@ export default function ContractWorkspacePage() {
   };
 
   // ===================== AI CHAT TAB =====================
-  const handleChatSend = (text) => {
+  const handleChatSend = async (text) => {
     const messageText = text || chatInput.trim();
     if (!messageText) return;
 
@@ -696,24 +696,30 @@ export default function ContractWorkspacePage() {
     setChatInput('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      const response = mockResponses[responseIndex.current % mockResponses.length];
-      responseIndex.current += 1;
+    try {
+      const data = await chatWithContract(id, messageText);
 
       const assistantMsg = {
         id: Date.now() + 1,
         role: 'assistant',
-        content: response,
+        content: data.answer,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        citations: [
-          { law: 'Indian Contract Act 1872', section: 'Section 27' },
-        ],
-        clauseRefs: ['11.1', '6.1'],
+        citations: data.citations || [],
+        clauseRefs: data.clause_refs || [],
       };
 
       setIsTyping(false);
       setMessages(prev => [...prev, assistantMsg]);
-    }, 1500 + Math.random() * 1000);
+    } catch (err) {
+      setIsTyping(false);
+      const errorMsg = {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: `Sorry, I encountered an error: ${err.message}. Please try again.`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    }
   };
 
   const handleChatKeyDown = (e) => {

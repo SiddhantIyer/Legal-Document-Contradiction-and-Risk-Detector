@@ -93,11 +93,13 @@ const contractSchema = new mongoose.Schema(
     uploadDate: {
       type: String,
       default: () => new Date().toISOString().split('T')[0],
+      index: true,
     },
     status: {
       type: String,
       enum: ['Analyzed', 'Processing', 'Failed'],
       default: 'Analyzed',
+      index: true,
     },
     riskScore: { type: Number, default: null },
     clauses: { type: Number, default: null }, // clause count

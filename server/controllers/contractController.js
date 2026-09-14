@@ -283,6 +283,47 @@ const deleteContract = async (req, res) => {
   }
 };
 
+// @desc    AI Chat — ask questions about a specific contract
+// @route   POST /api/contracts/:id/chat
+// @access  Private
+const chatWithContract = async (req, res) => {
+  try {
+    const contract = await Contract.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!contract) {
+      return res.status(404).json({ message: 'Contract not found' });
+    }
+
+    const { question } = req.body;
+    if (!question || !question.trim()) {
+      return res.status(400).json({ message: 'Question is required' });
+    }
+
+    // Forward to Python service with contract context
+    const response = await fetch(`${EXTRACTION_SERVICE_URL}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question: question.trim(),
+        clauses: contract.clauseData || [],
+        contradictions: contract.contradictionData || [],
+        summary: contract.summary || '',
+        contract_name: contract.name || '',
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Python service returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('chatWithContract error:', error.message);
+    res.status(500).json({ message: error.message || 'AI chat failed' });
+  }
+};
+
 // @desc    Seed sample contracts for a new user
 // @access  Internal (called from authController on registration)
 const seedContractsForUser = async (userId) => {
@@ -295,4 +336,5 @@ const seedContractsForUser = async (userId) => {
   }
 };
 
-module.exports = { getContracts, getContract, createContract, uploadAndAnalyze, deleteContract, seedContractsForUser };
+module.exports = { getContracts, getContract, createContract, uploadAndAnalyze, deleteContract, chatWithContract, seedContractsForUser };
+

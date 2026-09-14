@@ -216,9 +216,109 @@ async def extract_contract(file: UploadFile = File(...)):
     return response
 
 
+from pydantic import BaseModel
+from typing import Optional
+
+class ChatRequest(BaseModel):
+    question: str
+    clauses: list = []
+    contradictions: list = []
+    summary: str = ""
+    contract_name: str = ""
+
+class ChatResponse(BaseModel):
+    answer: str
+    citations: list = []
+    clause_refs: list = []
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat_with_contract(req: ChatRequest):
+    """
+    AI-powered Q&A about a specific contract.
+    Takes the user's question + contract context (clauses, contradictions, summary)
+    and returns an intelligent answer using Groq LLM.
+    """
+    import os
+    from groq import Groq
+
+    api_key = os.getenv("GROQ_API_KEY", "")
+    model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+
+    if not api_key or api_key == "your-groq-api-key-here":
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY is not configured")
+
+    # Build contract context from clauses
+    clause_context = ""
+    for i, clause in enumerate(req.clauses[:30]):  # Limit to 30 clauses for context window
+        c_number = clause.get("number", str(i+1))
+        c_type = clause.get("type", "")
+        c_text = clause.get("text", clause.get("excerpt", ""))[:500]
+        c_risk = clause.get("riskScore", 0)
+        c_severity = clause.get("severity", "LOW")
+        c_explanation = clause.get("explanation", "")[:200]
+        clause_context += f"\n--- Clause {c_number} ({c_type}) [Risk: {c_risk}/100, Severity: {c_severity}] ---\n{c_text}\n"
+        if c_explanation:
+            clause_context += f"AI Analysis: {c_explanation}\n"
+
+    contradiction_context = ""
+    for contra in req.contradictions[:10]:
+        clause_a = contra.get("clauseA", {}).get("number", "?")
+        clause_b = contra.get("clauseB", {}).get("number", "?")
+        classification = contra.get("classification", "")
+        explanation = contra.get("explanation", "")[:300]
+        contradiction_context += f"\n- Contradiction between Clause {clause_a} and Clause {clause_b} ({classification}): {explanation}\n"
+
+    system_prompt = f"""You are an expert legal AI assistant analyzing a contract titled "{req.contract_name}".
+You have access to the full clause analysis and contradiction detection results below.
+Answer the user's questions accurately based ONLY on the contract data provided.
+Be specific — cite clause numbers, risk scores, and relevant Indian law when applicable.
+If the contract data doesn't contain enough information to answer, say so honestly.
+Format your response with **bold** for key terms and use bullet points for lists.
+
+CONTRACT SUMMARY:
+{req.summary[:1000] if req.summary else "No summary available."}
+
+ANALYZED CLAUSES:
+{clause_context if clause_context else "No clauses available."}
+
+CONTRADICTIONS DETECTED:
+{contradiction_context if contradiction_context else "No contradictions detected."}"""
+
+    try:
+        client = Groq(api_key=api_key)
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": req.question},
+            ],
+            temperature=0.3,
+            max_tokens=2048,
+        )
+        answer = response.choices[0].message.content
+
+        # Extract clause references mentioned in the answer (e.g. "Clause 4.1")
+        import re
+        clause_refs = list(set(re.findall(r'Clause\s+(\d+\.?\d*)', answer, re.IGNORECASE)))
+
+        # Extract law citations (e.g. "Indian Contract Act 1872")
+        law_patterns = re.findall(r'((?:Indian\s+)?(?:Contract|Consumer Protection|IT|Information Technology|Companies)\s+Act[^,\.\n]*(?:Section\s+[\d\-]+)?)', answer, re.IGNORECASE)
+        citations = [{"law": law.strip()} for law in set(law_patterns)]
+
+        return ChatResponse(
+            answer=answer,
+            citations=citations[:5],
+            clause_refs=clause_refs[:10],
+        )
+    except Exception as e:
+        logger.error(f"Chat API error: {e}")
+        raise HTTPException(status_code=500, detail=f"AI chat failed: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     import os
 
     port = int(os.getenv("PYTHON_SERVICE_PORT", "8000"))
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+

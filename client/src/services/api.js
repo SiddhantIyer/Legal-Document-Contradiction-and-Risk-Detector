@@ -119,3 +119,15 @@ export const uploadContract = async (file) => {
 
   return data;
 };
+
+// ==========================================
+// AI Chat with Contract
+// ==========================================
+
+export const chatWithContract = async (contractId, question) => {
+  const data = await apiFetch(`/contracts/${contractId}/chat`, {
+    method: 'POST',
+    body: JSON.stringify({ question }),
+  });
+  return data;
+};

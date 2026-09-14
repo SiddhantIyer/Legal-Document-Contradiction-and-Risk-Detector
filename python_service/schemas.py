@@ -48,6 +48,7 @@ class ExtractedClause(BaseModel):
     text: str  # COMPLETE original clause text — never truncated for analysis
     excerpt: str = ""  # Shortened text for UI display (≤400 chars)
     heading: str = ""  # Original heading from the document (e.g., "Commercial Terms")
+    finding_group: str = ""  # Groups related clauses under one finding topic
     summary: str = ""  # Legacy field — kept for backward compat (stores original_heading from old pipeline)
     clause_summary: str = ""  # Short description of what the clause actually says
     issue_type: str = ""  # CONTRACTUAL_RISK | LEGAL_COMPLIANCE | AMBIGUITY | MISSING_PROTECTION | NO_MATERIAL_ISSUE

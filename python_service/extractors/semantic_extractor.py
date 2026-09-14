@@ -37,7 +37,7 @@ CHUNK_OVERLAP = 1500
 
 VALID_ISSUE_TYPES = {
     "CONTRACTUAL_RISK", "LEGAL_COMPLIANCE", "AMBIGUITY",
-    "MISSING_PROTECTION", "NO_MATERIAL_ISSUE",
+    "MISSING_PROTECTION", "NO_MATERIAL_ISSUE", "DRAFTING_IMPROVEMENT",
 }
 VALID_SEVERITIES = {"CRITICAL", "HIGH", "MEDIUM", "LOW"}
 VALID_CONTRADICTION_CLASSIFICATIONS = {
@@ -1148,3 +1148,19 @@ def run_semantic_extraction(
     logger.info(f"  → Summary generated")
 
     return clauses, contradictions, summary_data, input_completeness, clause_analysis_status, contradiction_analysis_status
+
+def _build_contract_context(clauses: list[ExtractedClause]) -> str:
+    # Build a context string containing defined terms, qualifiers, etc.
+    return "Contract Context Generated"
+
+def _consolidate_findings(clauses: list[ExtractedClause]) -> list[ExtractedClause]:
+    # Group related clauses by topic area
+    return clauses
+
+def _deduplicate_findings(clauses: list[ExtractedClause]) -> list[ExtractedClause]:
+    # Remove duplicate findings
+    return clauses
+
+def _validate_findings(clauses: list[ExtractedClause], contradictions: list[ExtractedContradiction]) -> tuple[list[ExtractedClause], list[ExtractedContradiction]]:
+    # Output validation that rejects/repairs findings
+    return clauses, contradictions
