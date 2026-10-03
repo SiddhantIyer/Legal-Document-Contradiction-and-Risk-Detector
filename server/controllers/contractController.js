@@ -1,5 +1,4 @@
 const Contract = require('../models/Contract');
-const { getSeedContracts } = require('../data/seedContracts');
 const FormData = require('form-data');
 
 // Python extraction service URL
@@ -324,17 +323,7 @@ const chatWithContract = async (req, res) => {
   }
 };
 
-// @desc    Seed sample contracts for a new user
-// @access  Internal (called from authController on registration)
-const seedContractsForUser = async (userId) => {
-  try {
-    const seedData = getSeedContracts(userId);
-    await Contract.insertMany(seedData);
-  } catch (error) {
-    console.error('seedContractsForUser error:', error.message);
-    // Non-fatal — don't block registration if seeding fails
-  }
-};
 
-module.exports = { getContracts, getContract, createContract, uploadAndAnalyze, deleteContract, chatWithContract, seedContractsForUser };
+
+module.exports = { getContracts, getContract, createContract, uploadAndAnalyze, deleteContract, chatWithContract };
 

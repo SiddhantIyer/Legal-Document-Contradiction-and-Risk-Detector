@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
-import { recentActivity, monthlyUploads, contractTypeDistribution } from '../../data/mockData';
 import './Dashboard.css';
 import '../App/AppPages.css';
 
@@ -14,6 +13,45 @@ export default function HomePage({ contracts = [], onRefreshContracts }) {
   const filteredContracts = contracts.filter(c =>
     !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.type.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Compute monthly uploads from actual contracts
+  const monthlyUploads = useMemo(() => {
+    if (contracts.length === 0) return [];
+    const monthCounts = {};
+    contracts.forEach(c => {
+      if (!c.uploadDate) return;
+      const d = new Date(c.uploadDate);
+      const key = d.toLocaleString('default', { month: 'short', year: 'numeric' });
+      monthCounts[key] = (monthCounts[key] || 0) + 1;
+    });
+    return Object.entries(monthCounts)
+      .map(([month, uploads]) => ({ month, uploads }))
+      .slice(-7);
+  }, [contracts]);
+
+  // Compute contract type distribution from actual contracts
+  const contractTypeDistribution = useMemo(() => {
+    if (contracts.length === 0) return [];
+    const typeCounts = {};
+    contracts.forEach(c => {
+      const type = c.type || 'Other';
+      typeCounts[type] = (typeCounts[type] || 0) + 1;
+    });
+    return Object.entries(typeCounts).map(([type, count]) => ({ type, count }));
+  }, [contracts]);
+
+  // Build activity feed from actual contracts
+  const recentActivity = useMemo(() => {
+    return contracts
+      .slice(0, 8)
+      .map((c, i) => ({
+        id: i + 1,
+        action: c.status === 'Analyzed' ? 'Analysis Complete' : 'Uploaded',
+        target: c.name,
+        time: c.uploadDate || '—',
+        type: c.status === 'Analyzed' ? 'analysis' : 'upload',
+      }));
+  }, [contracts]);
 
   // Compute stats from user's actual contracts
   const analyzedContracts = contracts.filter(c => c.status === 'Analyzed');
@@ -157,17 +195,16 @@ export default function HomePage({ contracts = [], onRefreshContracts }) {
           <div className="chart-wrapper">
             <h4>Risk Score Trend</h4>
             <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={[
-                { month: 'Jan', risk: 78 },
-                { month: 'Feb', risk: 72 },
-                { month: 'Mar', risk: 68 },
-                { month: 'Apr', risk: 75 },
-                { month: 'May', risk: 64 },
-                { month: 'Jun', risk: 71 },
-                { month: 'Jul', risk: 72 },
-              ]}>
+              <AreaChart data={analyzedContracts
+                .sort((a, b) => new Date(a.uploadDate) - new Date(b.uploadDate))
+                .slice(-7)
+                .map(c => ({
+                  month: c.uploadDate ? new Date(c.uploadDate).toLocaleString('default', { month: 'short' }) : '—',
+                  risk: c.riskScore || 0,
+                }))
+              }>
                 <XAxis dataKey="month" tick={{ fontFamily: 'Space Mono', fontSize: 12, fontWeight: 700 }} />
-                <YAxis domain={[50, 100]} tick={{ fontFamily: 'Space Mono', fontSize: 12, fontWeight: 700 }} />
+                <YAxis domain={[0, 100]} tick={{ fontFamily: 'Space Mono', fontSize: 12, fontWeight: 700 }} />
                 <Tooltip contentStyle={{ fontFamily: 'Space Mono', border: '2px solid #252422', boxShadow: '4px 4px 0px #252422' }} />
                 <Area type="monotone" dataKey="risk" stroke="#252422" fill="rgba(37,36,34,0.1)" strokeWidth={3} />
               </AreaChart>
@@ -237,19 +274,27 @@ export default function HomePage({ contracts = [], onRefreshContracts }) {
       {/* RECENT ACTIVITY */}
       <section className="dashboard-section" style={{ borderBottom: 'none' }}>
         <h2>Activity Feed</h2>
-        {recentActivity.map((item) => (
-          <div key={item.id} className="activity-item">
-            <div className="activity-icon">
-              {item.type === 'upload' ? '↑' : item.type === 'analysis' ? '◉' : item.type === 'rewrite' ? '✎' : item.type === 'contradiction' ? '⚠' : item.type === 'download' ? '↓' : item.type === 'compare' ? '⇄' : '◈'}
-            </div>
-            <div>
-              <div className="activity-text">
-                <strong>{item.action}</strong> — {item.target}
-              </div>
-              <div className="activity-time">{item.time}</div>
-            </div>
+        {recentActivity.length === 0 ? (
+          <div className="empty-state">
+            <span className="empty-state-icon">◈</span>
+            <h3>No Activity Yet</h3>
+            <p>Your activity feed will appear here once you upload and analyze contracts.</p>
           </div>
-        ))}
+        ) : (
+          recentActivity.map((item) => (
+            <div key={item.id} className="activity-item">
+              <div className="activity-icon">
+                {item.type === 'upload' ? '↑' : item.type === 'analysis' ? '◉' : item.type === 'rewrite' ? '✎' : item.type === 'contradiction' ? '⚠' : item.type === 'download' ? '↓' : item.type === 'compare' ? '⇄' : '◈'}
+              </div>
+              <div>
+                <div className="activity-text">
+                  <strong>{item.action}</strong> — {item.target}
+                </div>
+                <div className="activity-time">{item.time}</div>
+              </div>
+            </div>
+          ))
+        )}
       </section>
     </section>
   );

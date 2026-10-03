@@ -1,13 +1,22 @@
 import React, { useState } from 'react';
-import { currentUser } from '../../data/mockData';
 import './AppPages.css';
 import '../Dashboard/Dashboard.css';
 
 const TABS = ['Profile', 'Preferences', 'Account Settings'];
 
-export default function ProfilePage() {
+export default function ProfilePage({ user }) {
   const [activeTab, setActiveTab] = useState('Profile');
-  const [profile, setProfile] = useState({ ...currentUser });
+  const defaultProfile = {
+    name: user?.name || '',
+    email: user?.email || '',
+    company: '',
+    phone: '',
+    role: 'Free',
+    joinDate: '\u2014',
+    documentsUsed: 0,
+  };
+  const [profile, setProfile] = useState(defaultProfile);
+
   const [notifSettings, setNotifSettings] = useState({
     analysisComplete: true,
     highRisk: true,

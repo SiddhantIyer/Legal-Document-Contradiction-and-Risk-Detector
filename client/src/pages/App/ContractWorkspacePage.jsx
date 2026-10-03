@@ -1,12 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { getContractById, chatWithContract } from '../../services/api';
-import { versionDiffData, chatMessages as initialChatMessages, suggestedQuestions, riskTimeline } from '../../data/mockData';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import './AppPages.css';
 import '../Dashboard/Dashboard.css';
 
 const TABS = ['Overview', 'Document', 'Findings', 'AI Chat', 'Clause Suggestions', 'Compare Contracts'];
+
+const suggestedQuestions = [
+  'What are the top 3 riskiest clauses in this contract?',
+  'Is the non-compete clause enforceable under Indian law?',
+  'Compare the termination rights of both parties.',
+  'What data protection issues exist in this agreement?',
+];
 
 const mockResponses = [
   `Based on the analysis of this contract, **Section 27 of the Indian Contract Act 1872** renders most non-compete clauses void as they are considered agreements in restraint of trade.\n\nHowever, non-solicitation clauses with reasonable scope and duration may be enforceable.\n\n> **Key Point:** The 2-year restriction in Clause 11.1 is almost certainly unenforceable in India.`,
@@ -340,11 +346,14 @@ export default function ContractWorkspacePage() {
             </ResponsiveContainer>
           </div>
           <div className="chart-wrapper">
-            <h4>Risk Timeline</h4>
+            <h4>Risk by Clause</h4>
             <ResponsiveContainer width="100%" height={240}>
-              <AreaChart data={riskTimeline}>
+              <AreaChart data={clauses.map(c => ({
+                date: `§${c.number || '?'}`,
+                avgRisk: c.riskScore || 0,
+              }))}>
                 <XAxis dataKey="date" tick={{ fontFamily: 'Space Mono', fontSize: 11, fontWeight: 700 }} />
-                <YAxis domain={[40, 100]} tick={{ fontFamily: 'Space Mono', fontSize: 11, fontWeight: 700 }} />
+                <YAxis domain={[0, 100]} tick={{ fontFamily: 'Space Mono', fontSize: 11, fontWeight: 700 }} />
                 <Tooltip contentStyle={{ fontFamily: 'Space Mono', border: '2px solid #252422' }} />
                 <Area type="monotone" dataKey="avgRisk" stroke="#eb5e28" fill="rgba(235,94,40,0.1)" strokeWidth={3} />
               </AreaChart>
@@ -697,7 +706,7 @@ export default function ContractWorkspacePage() {
     setIsTyping(true);
 
     try {
-      const data = await chatWithContract(id, messageText);
+      const data = await chatWithContract(contractId, messageText);
 
       const assistantMsg = {
         id: Date.now() + 1,
@@ -900,7 +909,11 @@ export default function ContractWorkspacePage() {
   );
 
   // ===================== COMPARE CONTRACTS TAB =====================
-  const { version1, version2, changes, riskDifference } = versionDiffData;
+  // Placeholder — real version comparison is not yet implemented
+  const version1 = { name: contract?.name || 'Current Version', date: contract?.uploadDate || '—', clauses: clauses.length, riskScore: contract?.riskScore || 0 };
+  const version2 = { name: 'No comparison version uploaded', date: '—', clauses: 0, riskScore: 0 };
+  const changes = [];
+  const riskDifference = { overall: 0, critical: 0, high: 0, medium: 0, low: 0 };
 
   const getChangeIcon = (type) => {
     switch (type) {

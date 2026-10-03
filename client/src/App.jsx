@@ -196,7 +196,7 @@ function AppRoutes() {
         <Route path="/app/workspace/:contractId" element={<ContractWorkspacePage />} />
         <Route path="/app/knowledge" element={<KnowledgeBasePage />} />
         <Route path="/app/history" element={<HistoryPage contracts={contracts} onRefreshContracts={fetchContracts} />} />
-        <Route path="/app/profile" element={<ProfilePage />} />
+        <Route path="/app/profile" element={<ProfilePage user={user} />} />
       </Route>
 
       <Route

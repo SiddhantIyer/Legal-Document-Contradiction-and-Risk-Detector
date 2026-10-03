@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { seedContractsForUser } = require('./contractController');
 
 // Generate JWT token
 const generateToken = (id) => {
@@ -29,9 +28,6 @@ const register = async (req, res) => {
 
     // Create user
     const user = await User.create({ name, email, password });
-
-    // Seed sample contracts for the new user
-    await seedContractsForUser(user._id);
 
     // Generate token and respond
     const token = generateToken(user._id);

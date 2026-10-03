@@ -4,12 +4,6 @@ import { deleteContract as deleteContractApi } from '../../services/api';
 import './AppPages.css';
 import '../Dashboard/Dashboard.css';
 
-const exportHistory = [
-  { file: 'SaaS_Risk_Report.pdf', date: '2026-07-24', format: 'PDF', size: '2.4 MB' },
-  { file: 'Employment_Analysis.pdf', date: '2026-07-22', format: 'PDF', size: '1.8 MB' },
-  { file: 'NDA_Summary.csv', date: '2026-07-20', format: 'CSV', size: '0.3 MB' },
-  { file: 'Vendor_Clause_Report.pdf', date: '2026-07-18', format: 'PDF', size: '3.1 MB' },
-];
 
 export default function HistoryPage({ contracts = [], onRefreshContracts }) {
   const [search, setSearch] = useState('');
@@ -156,15 +150,11 @@ export default function HistoryPage({ contracts = [], onRefreshContracts }) {
       {/* EXPORT HISTORY */}
       <section className="dashboard-section" style={{ borderBottom: 'none' }}>
         <h2>Export History</h2>
-        {exportHistory.map((exp, i) => (
-          <div key={i} className="file-card">
-            <div className="file-card-info">
-              <span className="file-card-name">{exp.file}</span>
-              <span className="file-card-meta">{exp.format} • {exp.size} • {exp.date}</span>
-            </div>
-            <button className="btn-small">↓ Download</button>
-          </div>
-        ))}
+        <div className="empty-state">
+          <span className="empty-state-icon">↓</span>
+          <h3>No Exports Yet</h3>
+          <p>Exported reports will appear here after you download analysis results.</p>
+        </div>
       </section>
     </section>
   );
