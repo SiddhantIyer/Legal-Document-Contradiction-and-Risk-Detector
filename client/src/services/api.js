@@ -131,3 +131,15 @@ export const chatWithContract = async (contractId, question) => {
   });
   return data;
 };
+
+// ==========================================
+// Clause Redliner (Rewrite)
+// ==========================================
+
+export const rewriteClause = async (contractId, payload) => {
+  const data = await apiFetch(/contracts//rewrite, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return data;
+};

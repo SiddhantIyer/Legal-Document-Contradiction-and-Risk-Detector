@@ -101,6 +101,39 @@ export default function ContractWorkspacePage() {
   // --- COMPARE STATE ---
   const [compareTab, setCompareTab] = useState('changes');
 
+  // --- REWRITE STATE ---
+  const [rewriteTone, setRewriteTone] = useState('Balanced');
+  const [isRewriting, setIsRewriting] = useState(false);
+
+  const handleRewrite = async () => {
+    if (!selectedClause) return;
+    setIsRewriting(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/contracts/${contractId}/rewrite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('machine-counsel-token')}`
+        },
+        body: JSON.stringify({
+          clauseId: selectedClause._id,
+          originalText: selectedClause.text,
+          clauseType: selectedClause.type,
+          tone: rewriteTone,
+          riskExplanation: selectedClause.explanation
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+      
+      setClauses(prev => prev.map(c => c._id === selectedClause._id ? { ...c, rewrite: data.rewritten_text, isAnomaly: data.is_anomaly, anomalyScore: data.anomaly_score } : c));
+    } catch (err) {
+      alert("Rewrite failed: " + err.message);
+    } finally {
+      setIsRewriting(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'AI Chat') {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -444,7 +477,10 @@ export default function ContractWorkspacePage() {
                 marginBottom: '0.5rem',
               }}
             >
-              <strong style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.85rem' }}>§ {clause.number} — {clause.type}</strong>
+              <strong style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.85rem' }}>
+                § {clause.number} — {clause.type}
+                {clause.isAnomaly && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', backgroundColor: '#eb5e28', color: '#fff', padding: '0.1rem 0.3rem', borderRadius: '3px' }}>⚠️ ANOMALY</span>}
+              </strong>
               <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem', lineHeight: 1.6 }}>{clause.text}</p>
             </div>
           ))}
@@ -456,7 +492,10 @@ export default function ContractWorkspacePage() {
           <>
             <div className="detail-section">
               <span className="detail-label">Selected Clause</span>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>§ {selectedClause.number} — {selectedClause.type}</h3>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>
+                § {selectedClause.number} — {selectedClause.type}
+                {selectedClause.isAnomaly && <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', backgroundColor: '#eb5e28', color: '#fff', padding: '0.2rem 0.4rem', borderRadius: '3px', verticalAlign: 'middle' }}>⚠️ ANOMALY ({selectedClause.anomalyScore.toFixed(2)})</span>}
+              </h3>
               {selectedClause.issueType && <span className="contract-tag" style={{ marginBottom: '0.5rem', display: 'inline-block', fontSize: '0.75rem' }}>{selectedClause.issueType.replace(/_/g, ' ')}</span>}
               {selectedClause.clauseSummary && <p style={{ color: 'var(--charcoal-brown)', fontStyle: 'italic', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{selectedClause.clauseSummary}</p>}
               <p className="detail-value" style={{ color: 'var(--charcoal-brown)' }}>{selectedClause.text}</p>
@@ -495,12 +534,40 @@ export default function ContractWorkspacePage() {
 
             {selectedClause.rewrite && (
               <div className="detail-section">
-                <span className="detail-label">AI Suggested Rewrite</span>
+                <span className="detail-label">AI Suggested Rewrite ({rewriteTone})</span>
                 <div style={{ padding: '1rem', border: '2px solid var(--carbon-black)', backgroundColor: 'rgba(74,124,89,0.05)', borderLeft: '4px solid #4a7c59', marginTop: '0.5rem' }}>
                   <p style={{ fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>{selectedClause.rewrite}</p>
                 </div>
               </div>
             )}
+
+            <div className="detail-section" style={{ marginTop: '2rem', padding: '1rem', border: '2px solid var(--dust-grey)', backgroundColor: 'var(--floral-white)' }}>
+              <span className="detail-label" style={{ marginBottom: '1rem', display: 'block' }}>Clause Redliner</span>
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                {['Conservative', 'Balanced', 'Market-standard'].map(tone => (
+                  <button 
+                    key={tone}
+                    onClick={() => setRewriteTone(tone)}
+                    style={{
+                      flex: 1, padding: '0.5rem', fontSize: '0.8rem', fontWeight: 700, fontFamily: 'Space Mono', cursor: 'pointer',
+                      border: '2px solid var(--carbon-black)',
+                      backgroundColor: rewriteTone === tone ? 'var(--carbon-black)' : 'transparent',
+                      color: rewriteTone === tone ? '#fff' : 'var(--carbon-black)'
+                    }}
+                  >
+                    {tone}
+                  </button>
+                ))}
+              </div>
+              <button 
+                onClick={handleRewrite} 
+                disabled={isRewriting}
+                className="btn-primary" 
+                style={{ width: '100%', fontSize: '0.9rem', padding: '0.75rem' }}
+              >
+                {isRewriting ? 'Generating Rewrite...' : 'Generate New Rewrite'}
+              </button>
+            </div>
           </>
         ) : (
           <div className="document-empty-detail">
@@ -881,9 +948,11 @@ export default function ContractWorkspacePage() {
                 <span className="stat-pill positive">
                   −{riskReduction} points → {clause.riskScore - riskReduction}/100
                 </span>
-                <span style={{ fontSize: '0.85rem', color: 'var(--charcoal-brown)' }}>
-                  Based on: {clause.relevantLaw}
-                </span>
+                {clause.relevantLaw && (
+                  <span style={{ fontSize: '0.85rem', color: 'var(--charcoal-brown)' }}>
+                    Based on: {clause.relevantLaw}
+                  </span>
+                )}
               </div>
             </div>
 

@@ -20,6 +20,8 @@ const clauseSchema = new mongoose.Schema(
     rewrite: { type: String, default: '' },
     analysisStatus: { type: String, default: 'not_analyzed' }, // analyzed | not_analyzed | analysis_failed
     sourceSection: { type: String, default: '' }, // Section/chunk ID for traceability
+    isAnomaly: { type: Boolean, default: false },
+    anomalyScore: { type: Number, default: 0 },
   },
   { _id: true }
 );

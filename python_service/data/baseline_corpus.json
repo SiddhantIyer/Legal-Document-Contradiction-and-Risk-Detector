@@ -1,0 +1,57 @@
+[
+  {
+    "id": "std_1",
+    "type": "Limitation of Liability",
+    "text": "In no event shall either party be liable to the other for any indirect, incidental, consequential, special, or exemplary damages, including lost profits, arising out of or related to this Agreement."
+  },
+  {
+    "id": "std_2",
+    "type": "Limitation of Liability",
+    "text": "The maximum aggregate liability of the Service Provider under this Agreement shall not exceed the total fees paid by the Client in the twelve (12) months preceding the claim."
+  },
+  {
+    "id": "std_3",
+    "type": "Confidentiality",
+    "text": "The Receiving Party agrees to hold the Disclosing Party's Confidential Information in strict confidence and to take all reasonable precautions to protect such Confidential Information."
+  },
+  {
+    "id": "std_4",
+    "type": "Governing Law",
+    "text": "This Agreement shall be governed by and construed in accordance with the laws of India. Any disputes arising under or in connection with this Agreement shall be subject to the exclusive jurisdiction of the courts located in Mumbai, India."
+  },
+  {
+    "id": "std_5",
+    "type": "Termination",
+    "text": "Either party may terminate this Agreement for convenience by providing thirty (30) days prior written notice to the other party."
+  },
+  {
+    "id": "std_6",
+    "type": "Indemnification",
+    "text": "Each party shall indemnify, defend, and hold harmless the other party from and against any claims, damages, liabilities, and expenses arising out of the indemnifying party's gross negligence or willful misconduct."
+  },
+  {
+    "id": "std_7",
+    "type": "Payment Terms",
+    "text": "Client shall pay all undisputed invoices within thirty (30) days of receipt. Late payments shall incur interest at a rate of 1.5% per month."
+  },
+  {
+    "id": "std_8",
+    "type": "Intellectual Property",
+    "text": "All Intellectual Property Rights in the Deliverables shall vest in the Client upon full payment of the applicable fees."
+  },
+  {
+    "id": "std_9",
+    "type": "Dispute Resolution",
+    "text": "All disputes arising out of this Agreement shall be referred to arbitration under the Arbitration and Conciliation Act, 1996. The venue shall be New Delhi."
+  },
+  {
+    "id": "std_10",
+    "type": "Non-Compete",
+    "text": "The Service Provider agrees not to provide similar services to any direct competitor of the Client during the term of this Agreement."
+  },
+  {
+    "id": "std_11",
+    "type": "Force Majeure",
+    "text": "Neither party shall be liable for any failure or delay in performance under this Agreement (other than for delay in the payment of money due and payable hereunder) to the extent said failures or delays are proximately caused by causes beyond that party s reasonable control and occurring without its fault or negligence."
+  }
+]

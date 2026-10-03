@@ -1,0 +1,65 @@
+[
+  {
+    "id": "ICA_Sec_27",
+    "law": "Indian Contract Act, 1872",
+    "section": "Section 27",
+    "title": "Agreement in restraint of trade, void",
+    "text": "Every agreement by which any one is restrained from exercising a lawful profession, trade or business of any kind, is to that extent void. Exception 1: Saving of agreement not to carry on business of which good-will is sold."
+  },
+  {
+    "id": "ICA_Sec_28",
+    "law": "Indian Contract Act, 1872",
+    "section": "Section 28",
+    "title": "Agreements in restraint of legal proceedings, void",
+    "text": "Every agreement, by which any party thereto is restricted absolutely from enforcing his rights under or in respect of any contract, by the usual legal proceedings in the ordinary tribunals, or which limits the time within which he may thus enforce his rights, is void to that extent."
+  },
+  {
+    "id": "ICA_Sec_73",
+    "law": "Indian Contract Act, 1872",
+    "section": "Section 73",
+    "title": "Compensation for loss or damage caused by breach of contract",
+    "text": "When a contract has been broken, the party who suffers by such breach is entitled to receive, from the party who has broken the contract, compensation for any loss or damage caused to him thereby, which naturally arose in the usual course of things from such breach, or which the parties knew, when they made the contract, to be likely to result from the breach of it. Such compensation is not to be given for any remote and indirect loss or damage sustained by reason of the breach."
+  },
+  {
+    "id": "ICA_Sec_74",
+    "law": "Indian Contract Act, 1872",
+    "section": "Section 74",
+    "title": "Compensation for breach of contract where penalty stipulated for",
+    "text": "When a contract has been broken, if a sum is named in the contract as the amount to be paid in case of such breach, or if the contract contains any other stipulation by way of penalty, the party complaining of the breach is entitled, whether or not actual damage or loss is proved to have been caused thereby, to receive from the party who has broken the contract reasonable compensation not exceeding the amount so named or, as the case may be, the penalty stipulated for."
+  },
+  {
+    "id": "IT_Act_Sec_43A",
+    "law": "Information Technology Act, 2000",
+    "section": "Section 43A",
+    "title": "Compensation for failure to protect data",
+    "text": "Where a body corporate, possessing, dealing or handling any sensitive personal data or information in a computer resource which it owns, controls or operates, is negligent in implementing and maintaining reasonable security practices and procedures and thereby causes wrongful loss or wrongful gain to any person, such body corporate shall be liable to pay damages by way of compensation to the person so affected."
+  },
+  {
+    "id": "ACA_Sec_11",
+    "law": "Arbitration and Conciliation Act, 1996",
+    "section": "Section 11",
+    "title": "Appointment of Arbitrators",
+    "text": "A person of any nationality may be an arbitrator, unless otherwise agreed by the parties. The parties are free to agree on a procedure for appointing the arbitrator or arbitrators. If the parties fail to agree, the appointment shall be made by the Supreme Court or High Court."
+  },
+  {
+    "id": "ACA_Sec_7",
+    "law": "Arbitration and Conciliation Act, 1996",
+    "section": "Section 7",
+    "title": "Arbitration Agreement",
+    "text": "An arbitration agreement means an agreement by the parties to submit to arbitration all or certain disputes which have arisen or which may arise between them in respect of a defined legal relationship, whether contractual or not. An arbitration agreement shall be in writing."
+  },
+  {
+    "id": "DPDP_Sec_4",
+    "law": "Digital Personal Data Protection Act, 2023",
+    "section": "Section 4",
+    "title": "Grounds for Processing Digital Personal Data",
+    "text": "A Data Fiduciary may process personal data of a Data Principal only for a lawful purpose for which the Data Principal has given her consent or for certain legitimate uses."
+  },
+  {
+    "id": "DPDP_Sec_8",
+    "law": "Digital Personal Data Protection Act, 2023",
+    "section": "Section 8",
+    "title": "General Obligations of Data Fiduciary",
+    "text": "A Data Fiduciary shall protect personal data in its possession or under its control by taking reasonable security safeguards to prevent personal data breach. In the event of a personal data breach, the Data Fiduciary shall intimate the Board and each affected Data Principal."
+  }
+]

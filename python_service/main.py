@@ -18,6 +18,7 @@ from schemas import ExtractionResponse, ExtractedMetadata
 from extractors.text_extractor import extract_text
 from extractors.regex_extractor import run_regex_extraction
 from extractors.semantic_extractor import run_semantic_extraction
+from extractors.anomaly_detector import run_anomaly_detection
 
 # Load environment variables
 load_dotenv()
@@ -166,6 +167,11 @@ async def extract_contract(file: UploadFile = File(...)):
     extraction_diagnostics["clause_count"] = len(clauses)
     extraction_diagnostics["contradiction_count"] = len(contradictions)
 
+    # ── Step 4: Anomaly Detection (Isolation Forest) ─────────────
+    if clauses:
+        logger.info(f"  > Running anomaly detection on {len(clauses)} clauses...")
+        clauses = run_anomaly_detection(clauses)
+
     # ── Compute aggregate metrics ────────────────────────────────
     processing_time = time.time() - start_time
 
@@ -226,6 +232,18 @@ class ChatRequest(BaseModel):
     summary: str = ""
     contract_name: str = ""
 
+class RewriteRequest(BaseModel):
+    original_text: str
+    clause_type: str = "General"
+    tone: str = "Balanced" # Conservative, Balanced, Market-standard
+    risk_explanation: str = ""
+
+class RewriteResponse(BaseModel):
+    rewritten_text: str
+    tone_used: str
+    is_anomaly: bool
+    anomaly_score: float
+
 class ChatResponse(BaseModel):
     answer: str
     citations: list = []
@@ -268,12 +286,25 @@ async def chat_with_contract(req: ChatRequest):
         explanation = contra.get("explanation", "")[:300]
         contradiction_context += f"\n- Contradiction between Clause {clause_a} and Clause {clause_b} ({classification}): {explanation}\n"
 
+    # Search RAG Knowledge Base
+    from extractors.rag_retriever import rag_retriever
+    rag_results = rag_retriever.search(req.question)
+    
+    rag_context = ""
+    rag_citations = []
+    for r in rag_results:
+        rag_context += f"- {r['law']}, {r['section']} ({r['title']}): {r['text']}\n"
+        rag_citations.append({"law": r['law'], "section": r['section']})
+
     system_prompt = f"""You are an expert legal AI assistant analyzing a contract titled "{req.contract_name}".
-You have access to the full clause analysis and contradiction detection results below.
-Answer the user's questions accurately based ONLY on the contract data provided.
-Be specific — cite clause numbers, risk scores, and relevant Indian law when applicable.
+You have access to the full clause analysis, contradiction detection results, and relevant legal statutes retrieved from the knowledge base below.
+Answer the user's questions accurately based ONLY on the contract data and the retrieved legal statutes.
+Be specific — cite clause numbers, risk scores, and the provided legal statutes when applicable.
 If the contract data doesn't contain enough information to answer, say so honestly.
 Format your response with **bold** for key terms and use bullet points for lists.
+
+RELEVANT LEGAL STATUTES (From Knowledge Base):
+{rag_context if rag_context else "No relevant statutes found."}
 
 CONTRACT SUMMARY:
 {req.summary[:1000] if req.summary else "No summary available."}
@@ -304,15 +335,100 @@ CONTRADICTIONS DETECTED:
         # Extract law citations (e.g. "Indian Contract Act 1872")
         law_patterns = re.findall(r'((?:Indian\s+)?(?:Contract|Consumer Protection|IT|Information Technology|Companies)\s+Act[^,\.\n]*(?:Section\s+[\d\-]+)?)', answer, re.IGNORECASE)
         citations = [{"law": law.strip()} for law in set(law_patterns)]
+        
+        # Combine regex citations with actual RAG citations retrieved
+        all_citations = rag_citations + citations
 
         return ChatResponse(
             answer=answer,
-            citations=citations[:5],
+            citations=all_citations[:5],
             clause_refs=clause_refs[:10],
         )
     except Exception as e:
         logger.error(f"Chat API error: {e}")
         raise HTTPException(status_code=500, detail=f"AI chat failed: {str(e)}")
+
+@app.post("/rewrite", response_model=RewriteResponse)
+async def rewrite_clause(req: RewriteRequest):
+    """
+    Clause Redliner / Suggestion Engine.
+    Rewrites a clause based on the desired tone using few-shot templates,
+    and runs it through the anomaly detector for validation.
+    """
+    import os
+    import json
+    from groq import Groq
+    from extractors.anomaly_detector import detector
+
+    api_key = os.getenv("GROQ_API_KEY", "")
+    model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+
+    if not api_key or api_key == "your-groq-api-key-here":
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY is not configured")
+
+    # Load templates
+    template_text = ""
+    try:
+        with open("data/clause_templates.json", "r", encoding="utf-8") as f:
+            templates = json.load(f)
+            # Try to find a matching template
+            if req.clause_type in templates:
+                type_templates = templates[req.clause_type]
+                # Default to Balanced if exact tone not found
+                template_text = type_templates.get(req.tone, type_templates.get("Balanced", ""))
+    except Exception as e:
+        logger.warning(f"Could not load clause templates: {e}")
+
+    system_prompt = f"""You are an expert Indian corporate lawyer.
+Your task is to rewrite a legal clause to be more {req.tone}.
+Ensure the rewrite is legally sound, professional, and directly addresses any risks mentioned.
+DO NOT include any commentary, explanations, or introductory text. Return ONLY the rewritten legal text."""
+
+    if template_text:
+        system_prompt += f"\n\nUse the following template as a structural and tonal guide for a {req.tone} clause:\nTEMPLATE:\n{template_text}"
+
+    user_prompt = f"Original Clause:\n{req.original_text}\n"
+    if req.risk_explanation:
+        user_prompt += f"\nIdentified Risks to Fix:\n{req.risk_explanation}\n"
+    user_prompt += f"\nPlease rewrite this clause to be {req.tone}."
+
+    try:
+        client = Groq(api_key=api_key)
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.4,
+            max_tokens=1024,
+        )
+        rewritten_text = response.choices[0].message.content.strip()
+        
+        # Validation Pass: Anomaly Detection
+        is_anomaly = False
+        anomaly_score = 0.0
+        
+        if detector and detector.is_ready:
+            try:
+                embeddings = detector.encoder.encode([rewritten_text])
+                predictions = detector.iso_forest.predict(embeddings)
+                scores = detector.iso_forest.decision_function(embeddings)
+                
+                is_anomaly = bool(predictions[0] == -1)
+                anomaly_score = float(scores[0])
+            except Exception as e:
+                logger.error(f"Validation anomaly detection failed: {e}")
+
+        return RewriteResponse(
+            rewritten_text=rewritten_text,
+            tone_used=req.tone,
+            is_anomaly=is_anomaly,
+            anomaly_score=anomaly_score
+        )
+    except Exception as e:
+        logger.error(f"Rewrite API error: {e}")
+        raise HTTPException(status_code=500, detail=f"AI rewrite failed: {str(e)}")
 
 
 if __name__ == "__main__":

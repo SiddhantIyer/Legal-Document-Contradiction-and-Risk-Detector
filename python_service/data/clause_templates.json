@@ -1,0 +1,37 @@
+{
+  "Limitation of Liability": {
+    "Conservative": "Under no circumstances shall either party be liable to the other for any indirect, incidental, consequential, special, or exemplary damages, including but not limited to loss of profits, data, or business opportunities, arising out of or related to this Agreement, even if advised of the possibility of such damages. The total aggregate liability of either party shall not exceed the total amounts paid under this Agreement in the six (6) months preceding the event giving rise to the claim.",
+    "Balanced": "Neither party shall be liable for any indirect, incidental, or consequential damages. Each party's total aggregate liability arising out of or related to this Agreement shall be limited to the total fees paid or payable by the Client to the Service Provider in the twelve (12) months preceding the claim. This limitation shall not apply to breaches of confidentiality, indemnification obligations, or willful misconduct.",
+    "Market-standard": "Except for liability arising from gross negligence, willful misconduct, or breach of confidentiality obligations, neither party's aggregate liability shall exceed the total fees paid under this Agreement during the twelve (12) month period immediately preceding the claim."
+  },
+  "Indemnification": {
+    "Conservative": "Each party agrees to indemnify, defend, and hold harmless the other party, its officers, directors, employees, and agents from and against any and all claims, damages, liabilities, costs, and expenses (including reasonable attorneys' fees) arising out of or related to the indemnifying party's gross negligence, willful misconduct, or material breach of this Agreement.",
+    "Balanced": "The Service Provider shall indemnify and hold the Client harmless against third-party claims arising from the Service Provider's infringement of intellectual property rights or gross negligence. The Client shall indemnify the Service Provider against claims arising from the Client's misuse of the services or breach of applicable laws.",
+    "Market-standard": "Each party (the 'Indemnifying Party') shall indemnify the other party (the 'Indemnified Party') against any third-party claims arising directly from the Indemnifying Party's gross negligence or willful misconduct, provided the Indemnified Party gives prompt written notice of the claim and reasonable cooperation in its defense."
+  },
+  "Termination": {
+    "Conservative": "Either party may terminate this Agreement at any time, with or without cause, upon thirty (30) days' prior written notice to the other party. In the event of a material breach, the non-breaching party may terminate this Agreement immediately upon written notice.",
+    "Balanced": "Either party may terminate this Agreement for convenience upon sixty (60) days' prior written notice. If either party materially breaches this Agreement and fails to cure such breach within thirty (30) days after receiving written notice, the non-breaching party may terminate the Agreement immediately.",
+    "Market-standard": "This Agreement may be terminated by either party upon thirty (30) days' written notice for a material breach that remains uncured. The Client may terminate for convenience upon sixty (60) days' notice, subject to payment for all services rendered up to the effective date of termination."
+  },
+  "Confidentiality": {
+    "Conservative": "The Receiving Party shall hold the Disclosing Party's Confidential Information in strict confidence and shall not disclose it to any third party without prior written consent. The Receiving Party shall use the highest degree of care to protect the Confidential Information, which obligations shall survive the termination of this Agreement indefinitely.",
+    "Balanced": "The Receiving Party agrees to protect the Disclosing Party's Confidential Information with the same degree of care it uses to protect its own confidential information, but in no event less than a reasonable standard of care. These confidentiality obligations shall survive for a period of three (3) years following the termination of this Agreement.",
+    "Market-standard": "Each party agrees to maintain the confidentiality of the other party's Confidential Information for three (3) years after the termination of this Agreement, using reasonable care. Exceptions apply for information that becomes public through no fault of the Receiving Party or is required to be disclosed by law."
+  },
+  "Governing Law": {
+    "Conservative": "This Agreement shall be governed exclusively by the laws of India. Any and all disputes arising under or in connection with this Agreement shall be subject to the exclusive jurisdiction of the competent courts in New Delhi, India.",
+    "Balanced": "This Agreement shall be governed by the laws of India. Any dispute arising out of this Agreement shall be resolved through binding arbitration in Mumbai, India, in accordance with the Arbitration and Conciliation Act, 1996, before a single arbitrator jointly appointed by the parties.",
+    "Market-standard": "This Agreement shall be governed by and construed in accordance with the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts located in the city where the Service Provider's principal place of business is registered."
+  },
+  "Dispute Resolution": {
+    "Conservative": "Any dispute arising out of this Agreement shall be subject to the exclusive jurisdiction of the courts of Mumbai. Neither party shall commence arbitration proceedings.",
+    "Balanced": "Any dispute arising out of this Agreement shall first be resolved through good faith negotiations. If unresolved within 30 days, it shall be referred to and finally resolved by arbitration in accordance with the Arbitration and Conciliation Act, 1996. The seat of arbitration shall be Mumbai.",
+    "Market-standard": "Disputes shall be settled by binding arbitration in Mumbai under the Arbitration and Conciliation Act, 1996, by a sole arbitrator mutually appointed. The language of arbitration shall be English."
+  },
+  "Non-Compete": {
+    "Conservative": "During the term of this Agreement and for a period of two (2) years thereafter, the Service Provider shall not, directly or indirectly, engage in any business that competes with the Client anywhere in India.",
+    "Balanced": "During the term of this Agreement, the Service Provider shall not provide similar services to any direct competitor of the Client. This restriction shall not apply post-termination.",
+    "Market-standard": "During the term, the Service Provider shall not provide identical services to the Client\u2019s named direct competitors. This restriction shall automatically expire upon the termination of this Agreement."
+  }
+}

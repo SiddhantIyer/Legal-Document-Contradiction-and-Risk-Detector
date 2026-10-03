@@ -181,6 +181,8 @@ const uploadAndAnalyze = async (req, res) => {
       rewrite: c.rewrite || '',
       analysisStatus: c.analysis_status || 'not_analyzed',
       sourceSection: c.source_section || '',
+      isAnomaly: c.is_anomaly || false,
+      anomalyScore: c.anomaly_score || 0.0,
     }));
 
     // Map contradictions from Python format to Mongoose schema format
@@ -325,5 +327,58 @@ const chatWithContract = async (req, res) => {
 
 
 
-module.exports = { getContracts, getContract, createContract, uploadAndAnalyze, deleteContract, chatWithContract };
+// @desc    Clause Redliner — Rewrite a specific clause based on tone
+// @route   POST /api/contracts/:id/rewrite
+// @access  Private
+const rewriteClause = async (req, res) => {
+  try {
+    const contract = await Contract.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!contract) {
+      return res.status(404).json({ message: 'Contract not found' });
+    }
+
+    const { clauseId, tone, originalText, clauseType, riskExplanation } = req.body;
+    
+    if (!originalText) {
+      return res.status(400).json({ message: 'Original text is required' });
+    }
+
+    // Call Python rewrite service
+    const response = await fetch(`${EXTRACTION_SERVICE_URL}/rewrite`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        original_text: originalText,
+        clause_type: clauseType || 'General',
+        tone: tone || 'Balanced',
+        risk_explanation: riskExplanation || ''
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Python service returned ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Update the clause in the database
+    if (clauseId) {
+      const clauseIndex = contract.clauseData.findIndex(c => c._id.toString() === clauseId);
+      if (clauseIndex !== -1) {
+        contract.clauseData[clauseIndex].rewrite = data.rewritten_text;
+        contract.clauseData[clauseIndex].isAnomaly = data.is_anomaly;
+        contract.clauseData[clauseIndex].anomalyScore = data.anomaly_score;
+        await contract.save();
+      }
+    }
+
+    res.json(data);
+  } catch (error) {
+    console.error('rewriteClause error:', error.message);
+    res.status(500).json({ message: error.message || 'AI rewrite failed' });
+  }
+};
+
+module.exports = { getContracts, getContract, createContract, uploadAndAnalyze, deleteContract, chatWithContract, rewriteClause };
 

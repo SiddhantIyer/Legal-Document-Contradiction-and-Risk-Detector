@@ -64,6 +64,8 @@ class ExtractedClause(BaseModel):
     analysis_status: str = "not_analyzed"  # "analyzed" | "not_analyzed" | "analysis_failed"
     source_section: str = ""  # Section/chunk ID for document traceability
     source_paragraph_index: int = -1  # Paragraph index within original document
+    is_anomaly: bool = False
+    anomaly_score: float = 0.0
 
 
 # ─── Contradiction Data ──────────────────────────────────────────────
