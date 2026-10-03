@@ -14,6 +14,7 @@ import UploadContractPage from './pages/App/UploadContractPage'
 import ContractWorkspacePage from './pages/App/ContractWorkspacePage'
 import KnowledgeBasePage from './pages/App/KnowledgeBasePage'
 import HistoryPage from './pages/App/HistoryPage'
+import ClauseLibraryPage from './pages/App/ClauseLibraryPage'
 import ProfilePage from './pages/App/ProfilePage'
 
 function AppRoutes() {
@@ -108,6 +109,7 @@ function AppRoutes() {
               onNavigate: (path) => navigate(path),
               onLogout: handleLogout,
               user,
+              contracts,
             }}
           />
         }
@@ -195,6 +197,7 @@ function AppRoutes() {
         <Route path="/app/upload" element={<UploadContractPage onRefreshContracts={fetchContracts} />} />
         <Route path="/app/workspace/:contractId" element={<ContractWorkspacePage />} />
         <Route path="/app/knowledge" element={<KnowledgeBasePage />} />
+        <Route path="/app/library" element={<ClauseLibraryPage />} />
         <Route path="/app/history" element={<HistoryPage contracts={contracts} onRefreshContracts={fetchContracts} />} />
         <Route path="/app/profile" element={<ProfilePage user={user} />} />
       </Route>

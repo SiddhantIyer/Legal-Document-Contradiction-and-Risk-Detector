@@ -380,5 +380,45 @@ const rewriteClause = async (req, res) => {
   }
 };
 
-module.exports = { getContracts, getContract, createContract, uploadAndAnalyze, deleteContract, chatWithContract, rewriteClause };
+// @desc    Compare a new version of the contract
+// @route   POST /api/contracts/:id/compare
+// @access  Private
+const compareContract = async (req, res) => {
+  try {
+    const contract = await Contract.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!contract) {
+      return res.status(404).json({ message: 'Contract not found' });
+    }
+    
+    if (!req.file) {
+      return res.status(400).json({ message: 'Please upload a file to compare' });
+    }
+
+    const formData = new FormData();
+    const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
+    formData.append('file', blob, req.file.originalname);
+
+    const pythonRes = await fetch(`${EXTRACTION_SERVICE_URL}/extract`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!pythonRes.ok) {
+      throw new Error(`Python service returned ${pythonRes.status}`);
+    }
+
+    const extractionData = await pythonRes.json();
+    
+    // We send back the full V2 extraction data for the client to compare
+    res.json({
+      message: 'Comparison extracted successfully',
+      version2: extractionData
+    });
+  } catch (error) {
+    console.error('compareContract error:', error.message);
+    res.status(500).json({ message: error.message || 'Comparison failed' });
+  }
+};
+
+module.exports = { getContracts, getContract, createContract, uploadAndAnalyze, deleteContract, chatWithContract, rewriteClause, compareContract };
 

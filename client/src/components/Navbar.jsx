@@ -130,6 +130,7 @@ export default function Navbar({ isAuthenticated = false, onNavigate, onLogout, 
           </div>
 
           <button type="button" className="nav-link" onClick={() => onNavigate?.('/app/knowledge')}>[ KNOWLEDGE BASE ]</button>
+          <button type="button" className="nav-link" onClick={() => onNavigate?.('/app/library')}>[ CLAUSE LIBRARY ]</button>
         </div>
       )}
 

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { getContractById, chatWithContract } from '../../services/api';
+import { getContractById, chatWithContract, compareContract, downloadRedlinedDocx } from '../../services/api';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import './AppPages.css';
 import '../Dashboard/Dashboard.css';
@@ -28,6 +28,25 @@ export default function ContractWorkspacePage() {
   const [contradictions, setContradictions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Compare Contracts State
+  const [v2Data, setV2Data] = useState(null);
+  const [isComparing, setIsComparing] = useState(false);
+
+  const handleCompareUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setIsComparing(true);
+    try {
+      const data = await compareContract(contractId, file);
+      setV2Data(data.version2);
+    } catch (err) {
+      alert(err.message || 'Failed to compare contract');
+    } finally {
+      setIsComparing(false);
+    }
+  };
 
   // Fetch the contract from API
   useEffect(() => {
@@ -97,6 +116,25 @@ export default function ContractWorkspacePage() {
   // --- CLAUSE SUGGESTIONS STATE ---
   const [accepted, setAccepted] = useState({});
   const [copiedId, setCopiedId] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const finalClauses = clauses.map(c => ({
+        type: c.type || 'Clause',
+        text: accepted[c._id] && c.rewrite ? c.rewrite : (c.text || c.excerpt || '')
+      }));
+      await downloadRedlinedDocx({
+        contract_name: `${contract?.name || 'Redlined_Contract'}_Revised`,
+        clauses: finalClauses
+      });
+    } catch (err) {
+      alert("Failed to export document: " + err.message);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // --- COMPARE STATE ---
   const [compareTab, setCompareTab] = useState('changes');
@@ -901,13 +939,24 @@ export default function ContractWorkspacePage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+
   const handleAccept = (clauseId) => {
     setAccepted(prev => ({ ...prev, [clauseId]: true }));
   };
 
   const renderClauseSuggestions = () => (
     <section className="dashboard-section" style={{ borderBottom: 'none' }}>
-      <h2>Clause Suggestions ({riskyClauses.length})</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h2 style={{ margin: 0 }}>Clause Suggestions ({riskyClauses.length})</h2>
+        <button 
+          className="btn-primary" 
+          onClick={handleExport}
+          disabled={isExporting}
+          style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
+        >
+          {isExporting ? 'Exporting...' : '↓ Export Final to Word'}
+        </button>
+      </div>
       <p style={{ marginBottom: '2rem', color: 'var(--charcoal-brown)' }}>
         AI-generated rewrites for all risky clauses. Review, accept, or copy the suggested improvements.
       </p>
@@ -977,12 +1026,66 @@ export default function ContractWorkspacePage() {
     </section>
   );
 
-  // ===================== COMPARE CONTRACTS TAB =====================
-  // Placeholder — real version comparison is not yet implemented
-  const version1 = { name: contract?.name || 'Current Version', date: contract?.uploadDate || '—', clauses: clauses.length, riskScore: contract?.riskScore || 0 };
-  const version2 = { name: 'No comparison version uploaded', date: '—', clauses: 0, riskScore: 0 };
+// ===================== COMPARE CONTRACTS TAB =====================
+  
+  // Real comparison logic
+  const version1 = { 
+    name: contract?.name || 'Current Version', 
+    date: contract?.uploadDate || '—', 
+    clauses: clauses.length, 
+    riskScore: contract?.riskScore || 0 
+  };
+  
+  const version2 = { 
+    name: v2Data?.metadata?.filename || 'No comparison version uploaded', 
+    date: new Date().toISOString().split('T')[0], 
+    clauses: v2Data?.clauses?.length || 0, 
+    riskScore: v2Data?.overall_risk_score || 0 
+  };
+  
   const changes = [];
   const riskDifference = { overall: 0, critical: 0, high: 0, medium: 0, low: 0 };
+  
+  if (v2Data) {
+    riskDifference.overall = version2.riskScore - version1.riskScore;
+    
+    // Simple diff logic based on clause index (for demo)
+    const v1Clauses = clauses;
+    const v2Clauses = v2Data.clauses || [];
+    
+    const maxLen = Math.max(v1Clauses.length, v2Clauses.length);
+    for (let i=0; i<maxLen; i++) {
+      const c1 = v1Clauses[i];
+      const c2 = v2Clauses[i];
+      
+      if (c1 && !c2) {
+        changes.push({
+          id: `del-${i}`, type: 'deleted', clause: c1.number, label: c1.type,
+          severity: c1.severity, riskChange: -c1.riskScore,
+          v1Text: c1.text, v2Text: null
+        });
+      } else if (!c1 && c2) {
+        changes.push({
+          id: `add-${i}`, type: 'added', clause: c2.number || `V2-${i+1}`, label: c2.type,
+          severity: c2.severity, riskChange: c2.riskScore,
+          v1Text: null, v2Text: c2.text
+        });
+        if (c2.severity === 'CRITICAL') riskDifference.critical++;
+        if (c2.severity === 'HIGH') riskDifference.high++;
+      } else if (c1 && c2) {
+        if (c1.text !== c2.text) {
+          const riskChange = c2.riskScore - c1.riskScore;
+          changes.push({
+            id: `mod-${i}`, type: 'modified', clause: c2.number || c1.number, label: c2.type,
+            severity: c2.severity, riskChange: riskChange,
+            v1Text: c1.text, v2Text: c2.text
+          });
+          if (c2.severity === 'CRITICAL' && c1.severity !== 'CRITICAL') riskDifference.critical++;
+          if (c2.severity === 'HIGH' && c1.severity !== 'HIGH') riskDifference.high++;
+        }
+      }
+    }
+  }
 
   const getChangeIcon = (type) => {
     switch (type) {
@@ -995,17 +1098,24 @@ export default function ContractWorkspacePage() {
 
   const renderCompare = () => (
     <>
-      {/* UPLOAD SECOND VERSION */}
-      <div className="compare-upload-section">
-        <div className="compare-upload-zone">
-          <span style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }}>⇄</span>
-          <h3>Upload Second Version</h3>
-          <p style={{ color: 'var(--charcoal-brown)', marginTop: '0.5rem' }}>
-            Drop a revised version of this contract to compare changes.
-          </p>
-          <button className="upload-btn-inline" style={{ marginTop: '1rem' }}>Select File</button>
+{/* UPLOAD SECOND VERSION */}
+      {!v2Data && (
+        <div className="compare-upload-section">
+          <div className="compare-upload-zone">
+            <span style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }}>⇄</span>
+            <h3>{isComparing ? 'Analyzing...' : 'Upload Second Version'}</h3>
+            <p style={{ color: 'var(--charcoal-brown)', marginTop: '0.5rem' }}>
+              {isComparing ? 'Please wait while we extract and compare the clauses.' : 'Drop a revised version of this contract to compare changes.'}
+            </p>
+            {!isComparing && (
+              <div style={{ marginTop: '1rem', position: 'relative', display: 'inline-block' }}>
+                <button className="upload-btn-inline">Select File</button>
+                <input type="file" accept=".pdf,.docx" onChange={handleCompareUpload} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} />
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* VERSION COMPARISON */}
       <div className="split-layout">
@@ -1055,19 +1165,19 @@ export default function ContractWorkspacePage() {
         </div>
       </section>
 
-      {/* AI DIFFERENCE SUMMARY */}
-      <section className="dashboard-section">
-        <div className="ai-summary-block">
-          <span className="label">AI Summary of Differences</span>
-          <p style={{ marginTop: '0.75rem' }}>
-            Version 2 introduces significant risk increases across {changes.length} clause changes. The most concerning additions include
-            a blanket liability exclusion (Clause 4.1, +20 risk), a one-sided indemnification clause (Clause 4.2, +78 risk),
-            and an unenforceable non-compete (Clause 11.1, +90 risk). The removal of the mutual NDA (Clause 8.2)
-            eliminates important confidentiality protections. Overall risk score increased from {version1.riskScore} to {version2.riskScore},
-            with 3 new critical-severity issues. Immediate legal review is strongly recommended before accepting these changes.
-          </p>
-        </div>
-      </section>
+{/* AI DIFFERENCE SUMMARY */}
+      {v2Data && changes.length > 0 && (
+        <section className="dashboard-section">
+          <div className="ai-summary-block">
+            <span className="label">AI Summary of Differences</span>
+            <p style={{ marginTop: '0.75rem' }}>
+              Version 2 introduces changes across {changes.length} clauses. Overall risk score changed by {riskDifference.overall > 0 ? '+' : ''}{riskDifference.overall} points,
+              with {riskDifference.critical} new critical-severity issues and {riskDifference.high} new high-risk issues. 
+              {riskDifference.overall > 0 ? ' Immediate legal review is strongly recommended before accepting these changes.' : ' The revised contract appears to be safer or neutral compared to the baseline.'}
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* CHANGE FILTER TABS */}
       <div className="tabs-container">

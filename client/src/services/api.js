@@ -143,3 +143,83 @@ export const rewriteClause = async (contractId, payload) => {
   });
   return data;
 };
+export const compareContract = async (contractId, file) => {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_URL}/contracts/${contractId}/compare`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Comparison upload failed');
+  }
+
+  return data;
+};
+
+// ==========================================
+// CLAUSE LIBRARY ENDPOINTS (PYTHON SERVICE)
+// ==========================================
+
+const PYTHON_API_URL = 'http://localhost:8000';
+
+export const getClauseTemplates = async () => {
+  const response = await fetch(`${PYTHON_API_URL}/clause-library/templates`);
+  if (!response.ok) throw new Error('Failed to fetch templates');
+  return await response.json();
+};
+
+export const saveClauseTemplates = async (payload) => {
+  const response = await fetch(`${PYTHON_API_URL}/clause-library/templates`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) throw new Error('Failed to save templates');
+  return await response.json();
+};
+
+export const getBaselineCorpus = async () => {
+  const response = await fetch(`${PYTHON_API_URL}/clause-library/baseline`);
+  if (!response.ok) throw new Error('Failed to fetch baseline corpus');
+  return await response.json();
+};
+
+export const saveBaselineCorpus = async (payload) => {
+  const response = await fetch(`${PYTHON_API_URL}/clause-library/baseline`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) throw new Error('Failed to save baseline corpus');
+  return await response.json();
+};
+
+export const downloadRedlinedDocx = async (payload) => {
+  const response = await fetch(`${PYTHON_API_URL}/export/docx`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  
+  if (!response.ok) throw new Error('Failed to export DOCX');
+  
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.style.display = 'none';
+  a.href = url;
+  a.download = `${payload.contract_name || 'Redlined_Contract'}.docx`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  a.remove();
+};

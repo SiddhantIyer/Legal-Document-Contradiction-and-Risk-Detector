@@ -33,5 +33,10 @@
     "Conservative": "During the term of this Agreement and for a period of two (2) years thereafter, the Service Provider shall not, directly or indirectly, engage in any business that competes with the Client anywhere in India.",
     "Balanced": "During the term of this Agreement, the Service Provider shall not provide similar services to any direct competitor of the Client. This restriction shall not apply post-termination.",
     "Market-standard": "During the term, the Service Provider shall not provide identical services to the Client\u2019s named direct competitors. This restriction shall automatically expire upon the termination of this Agreement."
+  },
+  "Payment Terms": {
+    "Conservative": "All payments shall be made within 15 days of receipt of an undisputed invoice. The Client reserves the right to withhold payment for any disputed amounts until resolved.",
+    "Balanced": "Invoices are payable within 30 days of receipt. Late payments shall accrue interest at a rate of 1.5% per month or the maximum rate permitted by law, whichever is lower.",
+    "Market-standard": "Payment is due net 30 days from the invoice date. The Service Provider may suspend services if payment is delayed by more than 15 days past the due date."
   }
 }

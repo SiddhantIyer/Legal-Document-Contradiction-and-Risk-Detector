@@ -431,6 +431,96 @@ DO NOT include any commentary, explanations, or introductory text. Return ONLY t
         raise HTTPException(status_code=500, detail=f"AI rewrite failed: {str(e)}")
 
 
+@app.get("/clause-library/templates")
+async def get_templates():
+    import json
+    import os
+    try:
+        path = os.path.join(os.path.dirname(__file__), "data", "clause_templates.json")
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Failed to read templates: {e}")
+        return {}
+
+@app.post("/clause-library/templates")
+async def save_templates(payload: dict):
+    import json
+    import os
+    try:
+        path = os.path.join(os.path.dirname(__file__), "data", "clause_templates.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2)
+        return {"status": "success", "message": "Templates updated"}
+    except Exception as e:
+        logger.error(f"Failed to save templates: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save templates")
+
+@app.get("/clause-library/baseline")
+async def get_baseline():
+    import json
+    import os
+    try:
+        path = os.path.join(os.path.dirname(__file__), "data", "baseline_corpus.json")
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Failed to read baseline: {e}")
+        return []
+
+@app.post("/clause-library/baseline")
+async def save_baseline(payload: list):
+    import json
+    import os
+    try:
+        path = os.path.join(os.path.dirname(__file__), "data", "baseline_corpus.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2)
+            
+        # Try to reload the anomaly detector so it picks up the new baseline
+        from extractors.anomaly_detector import detector
+        if detector:
+            detector.is_ready = False
+            detector._initialize_model()
+            
+        return {"status": "success", "message": "Baseline corpus updated"}
+    except Exception as e:
+        logger.error(f"Failed to save baseline: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save baseline")
+
+
+@app.post("/export/docx")
+async def export_to_docx(payload: dict):
+    from docx import Document
+    import io
+    from fastapi.responses import StreamingResponse
+    
+    try:
+        document = Document()
+        document.add_heading(payload.get("contract_name", "Redlined Contract"), 0)
+        
+        for clause in payload.get("clauses", []):
+            if clause.get("type"):
+                document.add_heading(clause.get("type"), level=2)
+            
+            p = document.add_paragraph(clause.get("text", ""))
+            
+            # If the user accepted a rewrite, we can highlight it or something,
+            # but the payload should just send the final text to use.
+            
+        file_stream = io.BytesIO()
+        document.save(file_stream)
+        file_stream.seek(0)
+        
+        return StreamingResponse(
+            file_stream, 
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={"Content-Disposition": f"attachment; filename=redlined_contract.docx"}
+        )
+    except Exception as e:
+        logger.error(f"Failed to export DOCX: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to export: {str(e)}")
+
 if __name__ == "__main__":
     import uvicorn
     import os
