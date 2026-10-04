@@ -9,7 +9,7 @@ const EXTRACTION_SERVICE_URL = process.env.EXTRACTION_SERVICE_URL || 'http://loc
 // @access  Private
 const getContracts = async (req, res) => {
   try {
-    const contracts = await Contract.find({ userId: req.user._id })
+    const contracts = await Contract.find({ organizationId: req.user.organization })
       .select('-clauseData -contradictionData -entities') // Exclude heavy analysis data from list view
       .sort({ createdAt: -1 });
 
@@ -27,7 +27,7 @@ const getContract = async (req, res) => {
   try {
     const contract = await Contract.findOne({
       _id: req.params.id,
-      userId: req.user._id,
+      userId: req.user._id, organizationId: req.user.organization,
     });
 
     if (!contract) {
@@ -68,7 +68,7 @@ const createContract = async (req, res) => {
     }
 
     const contract = await Contract.create({
-      userId: req.user._id,
+      userId: req.user._id, organizationId: req.user.organization,
       name,
       type: type || 'General',
       clauseData: clauseData || [],
@@ -207,7 +207,7 @@ const uploadAndAnalyze = async (req, res) => {
 
     // Create the contract in MongoDB
     const contract = await Contract.create({
-      userId: req.user._id,
+      userId: req.user._id, organizationId: req.user.organization,
       name: originalname,
       type: contract_type,
       clauseData,
@@ -267,7 +267,7 @@ const deleteContract = async (req, res) => {
   try {
     const contract = await Contract.findOneAndDelete({
       _id: req.params.id,
-      userId: req.user._id,
+      userId: req.user._id, organizationId: req.user.organization,
     });
 
     if (!contract) {
@@ -289,7 +289,7 @@ const deleteContract = async (req, res) => {
 // @access  Private
 const chatWithContract = async (req, res) => {
   try {
-    const contract = await Contract.findOne({ _id: req.params.id, userId: req.user._id });
+    const contract = await Contract.findOne({ _id: req.params.id, organizationId: req.user.organization });
     if (!contract) {
       return res.status(404).json({ message: 'Contract not found' });
     }
@@ -332,7 +332,7 @@ const chatWithContract = async (req, res) => {
 // @access  Private
 const rewriteClause = async (req, res) => {
   try {
-    const contract = await Contract.findOne({ _id: req.params.id, userId: req.user._id });
+    const contract = await Contract.findOne({ _id: req.params.id, organizationId: req.user.organization });
     if (!contract) {
       return res.status(404).json({ message: 'Contract not found' });
     }
@@ -385,7 +385,7 @@ const rewriteClause = async (req, res) => {
 // @access  Private
 const compareContract = async (req, res) => {
   try {
-    const contract = await Contract.findOne({ _id: req.params.id, userId: req.user._id });
+    const contract = await Contract.findOne({ _id: req.params.id, organizationId: req.user.organization });
     if (!contract) {
       return res.status(404).json({ message: 'Contract not found' });
     }

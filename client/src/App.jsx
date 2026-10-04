@@ -16,6 +16,9 @@ import KnowledgeBasePage from './pages/App/KnowledgeBasePage'
 import HistoryPage from './pages/App/HistoryPage'
 import ClauseLibraryPage from './pages/App/ClauseLibraryPage'
 import ProfilePage from './pages/App/ProfilePage'
+import TeamManagementPage from './pages/App/TeamManagementPage'
+import SecurityPage from './pages/App/SecurityPage'
+import BillingPage from './pages/App/BillingPage'
 
 function AppRoutes() {
   const [user, setUser] = useState(null)
@@ -200,6 +203,9 @@ function AppRoutes() {
         <Route path="/app/library" element={<ClauseLibraryPage />} />
         <Route path="/app/history" element={<HistoryPage contracts={contracts} onRefreshContracts={fetchContracts} />} />
         <Route path="/app/profile" element={<ProfilePage user={user} />} />
+        <Route path="/app/team" element={<TeamManagementPage />} />
+        <Route path="/app/security" element={<SecurityPage user={user} />} />
+        <Route path="/app/billing" element={<BillingPage user={user} />} />
       </Route>
 
       <Route

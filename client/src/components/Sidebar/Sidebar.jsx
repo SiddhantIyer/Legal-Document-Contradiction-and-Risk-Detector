@@ -20,7 +20,11 @@ export default function Sidebar({ currentPath = '/app', onNavigate, onLogout }) 
     },
     { id: 'KNOWLEDGE', label: '[ KNOWLEDGE BASE ]', path: '/app/knowledge' },
     { id: 'HISTORY', label: '[ HISTORY ]', path: '/app/history' },
+    { id: 'LIBRARY', label: '[ CLAUSE LIBRARY ]', path: '/app/library' },
     { id: 'PROFILE', label: '[ PROFILE ]', path: '/app/profile' },
+    { id: 'TEAM', label: '[ TEAM MANAGEMENT ]', path: '/app/team' },
+    { id: 'SECURITY', label: '[ SECURITY & COMPLIANCE ]', path: '/app/security' },
+    { id: 'BILLING', label: '[ BILLING & PLANS ]', path: '/app/billing' },
   ];
 
   const isActivePath = (itemPath) => {

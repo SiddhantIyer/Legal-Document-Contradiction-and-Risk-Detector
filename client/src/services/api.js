@@ -223,3 +223,64 @@ export const downloadRedlinedDocx = async (payload) => {
   window.URL.revokeObjectURL(url);
   a.remove();
 };
+
+// ==========================================
+// TEAM / ORGANIZATION
+// ==========================================
+
+export const getTeam = async () => {
+  const data = await apiFetch('/team');
+  return data;
+};
+
+export const inviteTeamMember = async (payload) => {
+  const data = await apiFetch('/team/invite', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return data;
+};
+
+// ==========================================
+// SECURITY & COMPLIANCE
+// ==========================================
+
+export const enable2FA = async () => {
+  const data = await apiFetch('/auth/2fa/enable', { method: 'POST' });
+  return data;
+};
+
+export const verify2FA = async (token) => {
+  const data = await apiFetch('/auth/2fa/verify', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  });
+  return data;
+};
+
+export const disable2FA = async (password) => {
+  const data = await apiFetch('/auth/2fa/disable', {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  });
+  return data;
+};
+
+export const getAuditLogs = async () => {
+  const data = await apiFetch('/audit');
+  return data;
+};
+
+// ==========================================
+// BILLING & PLANS
+// ==========================================
+
+export const upgradeToPro = async () => {
+  const data = await apiFetch('/billing/upgrade', { method: 'POST' });
+  return data;
+};
+
+export const getBillingStatus = async () => {
+  const data = await apiFetch('/billing/status');
+  return data;
+};

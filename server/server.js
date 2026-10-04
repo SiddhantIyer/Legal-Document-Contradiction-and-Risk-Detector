@@ -4,6 +4,9 @@ const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const contractRoutes = require('./routes/contractRoutes');
+const teamRoutes = require('./routes/teamRoutes');
+const auditRoutes = require('./routes/auditRoutes');
+const billingRoutes = require('./routes/billingRoutes');
 
 // Load env variables
 dotenv.config();
@@ -23,6 +26,9 @@ app.use(express.json({ limit: '10mb' }));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/contracts', contractRoutes);
+app.use('/api/team', teamRoutes);
+app.use('/api/audit', auditRoutes);
+app.use('/api/billing', billingRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

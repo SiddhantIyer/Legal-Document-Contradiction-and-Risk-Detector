@@ -168,6 +168,27 @@ export default function Navbar({ isAuthenticated = false, onNavigate, onLogout, 
                 >
                   Profile
                 </button>
+                <button
+                  className="profile-dropdown-item"
+                  type="button"
+                  onClick={() => { onNavigate?.('/app/team'); setDropdownOpen(false); }}
+                >
+                  Team Management
+                </button>
+                <button
+                  className="profile-dropdown-item"
+                  type="button"
+                  onClick={() => { onNavigate?.('/app/security'); setDropdownOpen(false); }}
+                >
+                  Security & Compliance
+                </button>
+                <button
+                  className="profile-dropdown-item"
+                  type="button"
+                  onClick={() => { onNavigate?.('/app/billing'); setDropdownOpen(false); }}
+                >
+                  Billing & Plans
+                </button>
                 <div className="profile-dropdown-divider" />
                 <button
                   className="profile-dropdown-item logout-item"

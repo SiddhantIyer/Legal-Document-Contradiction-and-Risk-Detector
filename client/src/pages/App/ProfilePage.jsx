@@ -140,20 +140,6 @@ export default function ProfilePage({ user }) {
               </button>
             </div>
 
-            {/* 2FA */}
-            <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '4px solid var(--carbon-black)' }}>
-              <h3>Two-Factor Authentication</h3>
-              <div className="toggle-row">
-                <div>
-                  <div className="toggle-label">Enable 2FA</div>
-                  <div className="toggle-desc">Add an extra layer of security to your account.</div>
-                </div>
-                <div className="toggle-switch">
-                  <div className="toggle-switch-knob" />
-                </div>
-              </div>
-            </div>
-
             {/* SESSIONS */}
             <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '4px solid var(--carbon-black)' }}>
               <h3>Active Sessions</h3>
@@ -163,25 +149,6 @@ export default function ProfilePage({ user }) {
                   <span className="file-card-meta">Windows • Chrome • Last active: Now</span>
                 </div>
                 <span className="severity-badge low">Active</span>
-              </div>
-            </div>
-
-            {/* SUBSCRIPTION */}
-            <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '4px solid var(--carbon-black)' }}>
-              <h3>Subscription</h3>
-              <div style={{ border: '4px solid var(--carbon-black)', padding: '2rem', marginTop: '1rem', backgroundColor: 'var(--carbon-black)', color: 'var(--floral-white)' }}>
-                <span className="label" style={{ color: 'var(--spicy-paprika)', borderColor: 'var(--spicy-paprika)' }}>Current Plan</span>
-                <h3 style={{ marginTop: '0.5rem', color: 'var(--floral-white)' }}>Enterprise — ₹999/month</h3>
-                <p style={{ color: 'var(--dust-grey)', marginTop: '0.5rem' }}>
-                  Unlimited scans • Clause Rewriter • Version Diffing • AI Chat
-                </p>
-                <p style={{ color: 'var(--dust-grey)', marginTop: '0.5rem', fontSize: '0.85rem' }}>
-                  Next billing: August 15, 2026
-                </p>
-              </div>
-              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '1rem' }}>
-                <button className="btn-primary" style={{ fontSize: '1rem', padding: '0.75rem 1.5rem' }}>Manage Subscription</button>
-                <button className="btn-primary" style={{ fontSize: '1rem', padding: '0.75rem 1.5rem', backgroundColor: 'var(--charcoal-brown)' }}>Billing History</button>
               </div>
             </div>
           </div>

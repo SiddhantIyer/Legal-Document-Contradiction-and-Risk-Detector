@@ -11,6 +11,7 @@ const {
   compareContract,
 } = require('../controllers/contractController');
 const { protect } = require('../middleware/authMiddleware');
+const { checkUsageLimit, requirePro } = require('../middleware/billingMiddleware');
 
 const router = express.Router();
 
@@ -33,10 +34,10 @@ const upload = multer({
 
 router.get('/', protect, getContracts);
 router.get('/:id', protect, getContract);
-router.post('/', protect, createContract);
-router.post('/upload', protect, upload.single('file'), uploadAndAnalyze);
+router.post('/', protect, checkUsageLimit, createContract);
+router.post('/upload', protect, checkUsageLimit, upload.single('file'), uploadAndAnalyze);
 router.post('/:id/chat', protect, chatWithContract);
-router.post('/:id/rewrite', protect, rewriteClause);
+router.post('/:id/rewrite', protect, requirePro, rewriteClause);
 router.post('/:id/compare', protect, upload.single('file'), compareContract);
 router.delete('/:id', protect, deleteContract);
 

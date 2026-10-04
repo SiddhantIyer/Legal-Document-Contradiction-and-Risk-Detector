@@ -20,8 +20,27 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Password is required'],
       minlength: [6, 'Password must be at least 6 characters'],
-      select: false, // Don't include password in queries by default
+      select: false,
     },
+    role: {
+      type: String,
+      enum: ['OWNER', 'PARALEGAL', 'SENIOR_PARTNER', 'CLIENT'],
+      default: 'OWNER',
+    },
+    organization: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+      default: null, // Will be set during registration
+    },
+    twoFactorSecret: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    isTwoFactorEnabled: {
+      type: Boolean,
+      default: false,
+    }
   },
   {
     timestamps: true,

@@ -82,6 +82,12 @@ const contractSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+      default: null,
+      index: true,
+    },
     name: {
       type: String,
       required: [true, 'Contract name is required'],
